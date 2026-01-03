@@ -1,10 +1,10 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building2, Users, Shield, QrCode, CalendarPlus, TrendingUp } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { RecentActivity } from '@/components/dashboard/RecentActivity';
-import { UserRole } from '@/lib/types';
+import { useAuth } from '@/hooks/useAuth';
+import { useEffect } from 'react';
 
 // Mock data - will be replaced with real data from Supabase
 const mockActivities = [
@@ -17,16 +17,16 @@ const mockActivities = [
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  // Mock user data - will be replaced with auth context
-  const [userRole] = useState<UserRole>('super_admin');
-  const [userName] = useState('Admin Test');
+  const { user, loading } = useAuth();
 
-  const handleLogout = () => {
-    navigate('/auth');
-  };
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/auth');
+    }
+  }, [user, loading, navigate]);
 
   return (
-    <DashboardLayout userRole={userRole} userName={userName} onLogout={handleLogout}>
+    <DashboardLayout>
       <div className="space-y-8">
         {/* Header */}
         <div>
