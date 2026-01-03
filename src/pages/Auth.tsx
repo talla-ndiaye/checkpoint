@@ -1,14 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Shield, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function Auth() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, signIn, signUp } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -17,21 +19,43 @@ export default function Auth() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
 
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate auth - will be connected to Supabase
-    setTimeout(() => {
+    try {
+      if (isLogin) {
+        const { error } = await signIn(email, password);
+        if (error) throw error;
+        toast({
+          title: "Connexion réussie",
+          description: "Bienvenue sur SecureAccess",
+        });
+        navigate('/dashboard');
+      } else {
+        const { error } = await signUp(email, password, firstName, lastName);
+        if (error) throw error;
+        toast({
+          title: "Compte créé",
+          description: "Votre compte a été créé avec succès",
+        });
+        navigate('/dashboard');
+      }
+    } catch (error: any) {
       toast({
-        title: isLogin ? "Connexion réussie" : "Compte créé",
-        description: isLogin 
-          ? "Bienvenue sur SecureAccess" 
-          : "Votre compte a été créé avec succès",
+        title: "Erreur",
+        description: error.message || "Une erreur est survenue",
+        variant: "destructive",
       });
+    } finally {
       setIsLoading(false);
-      navigate('/dashboard');
-    }, 1500);
+    }
   };
 
   return (

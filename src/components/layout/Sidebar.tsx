@@ -25,10 +25,10 @@ interface SidebarProps {
 const menuItemsByRole: Record<UserRole, { label: string; icon: React.ElementType; path: string }[]> = {
   super_admin: [
     { label: 'Tableau de bord', icon: LayoutDashboard, path: '/dashboard' },
-    { label: 'Sites', icon: Building2, path: '/sites' },
-    { label: 'Gestionnaires', icon: Users, path: '/managers' },
-    { label: 'Rapports', icon: FileBarChart, path: '/reports' },
-    { label: 'Paramètres', icon: Settings, path: '/settings' },
+    { label: 'Sites', icon: Building2, path: '/admin/sites' },
+    { label: 'Gestionnaires', icon: Users, path: '/admin/managers' },
+    { label: 'Rapports', icon: FileBarChart, path: '/admin/reports' },
+    { label: 'Paramètres', icon: Settings, path: '/admin/settings' },
   ],
   manager: [
     { label: 'Tableau de bord', icon: LayoutDashboard, path: '/dashboard' },
