@@ -32,10 +32,10 @@ const menuItemsByRole: Record<UserRole, { label: string; icon: React.ElementType
   ],
   manager: [
     { label: 'Tableau de bord', icon: LayoutDashboard, path: '/dashboard' },
-    { label: 'Gardiens', icon: Shield, path: '/guardians' },
-    { label: 'Entreprises', icon: Briefcase, path: '/companies' },
-    { label: 'Historique', icon: History, path: '/history' },
-    { label: 'Rapports', icon: FileBarChart, path: '/reports' },
+    { label: 'Gardiens', icon: Shield, path: '/manager/guardians' },
+    { label: 'Entreprises', icon: Briefcase, path: '/manager/companies' },
+    { label: 'Historique', icon: History, path: '/manager/history' },
+    { label: 'Rapports', icon: FileBarChart, path: '/manager/reports' },
   ],
   guardian: [
     { label: 'Tableau de bord', icon: LayoutDashboard, path: '/dashboard' },
