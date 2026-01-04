@@ -31,32 +31,32 @@ const menuItemsByRole: Record<UserRole, { label: string; icon: React.ElementType
     { label: 'Tableau de bord', icon: LayoutDashboard, path: '/dashboard' },
     { label: 'Sites', icon: Building2, path: '/admin/sites' },
     { label: 'Gestionnaires', icon: Users, path: '/admin/managers' },
-    { label: 'Rapports', icon: FileBarChart, path: '/admin/reports' },
+    { label: 'Historique', icon: History, path: '/access-history' },
     { label: 'Paramètres', icon: Settings, path: '/admin/settings' },
   ],
   manager: [
     { label: 'Tableau de bord', icon: LayoutDashboard, path: '/dashboard' },
     { label: 'Gardiens', icon: Shield, path: '/manager/guardians' },
     { label: 'Entreprises', icon: Briefcase, path: '/manager/companies' },
-    { label: 'Historique', icon: History, path: '/manager/history' },
+    { label: 'Historique', icon: History, path: '/access-history' },
     { label: 'Rapports', icon: FileBarChart, path: '/manager/reports' },
   ],
   guardian: [
     { label: 'Tableau de bord', icon: LayoutDashboard, path: '/dashboard' },
     { label: 'Scanner QR', icon: QrCode, path: '/scan' },
-    { label: 'Historique', icon: History, path: '/history' },
+    { label: 'Historique', icon: History, path: '/access-history' },
   ],
   company_admin: [
     { label: 'Tableau de bord', icon: LayoutDashboard, path: '/dashboard' },
     { label: 'Employés', icon: Users, path: '/employees' },
-    { label: 'Historique', icon: History, path: '/history' },
+    { label: 'Historique', icon: History, path: '/access-history' },
     { label: 'Rapports', icon: FileBarChart, path: '/reports' },
   ],
   employee: [
     { label: 'Tableau de bord', icon: LayoutDashboard, path: '/dashboard' },
     { label: 'Mon QR Code', icon: QrCode, path: '/my-qr' },
     { label: 'Invitations', icon: CalendarPlus, path: '/invitations' },
-    { label: 'Historique', icon: History, path: '/history' },
+    { label: 'Historique', icon: History, path: '/access-history' },
   ],
 };
 
