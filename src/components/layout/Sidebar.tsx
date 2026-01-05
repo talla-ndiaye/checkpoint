@@ -32,14 +32,16 @@ const menuItemsByRole: Record<UserRole, { label: string; icon: React.ElementType
     { label: 'Sites', icon: Building2, path: '/admin/sites' },
     { label: 'Gestionnaires', icon: Users, path: '/admin/managers' },
     { label: 'Historique', icon: History, path: '/access-history' },
+    { label: 'Rapports', icon: FileBarChart, path: '/reports' },
     { label: 'Paramètres', icon: Settings, path: '/admin/settings' },
   ],
   manager: [
     { label: 'Tableau de bord', icon: LayoutDashboard, path: '/dashboard' },
     { label: 'Gardiens', icon: Shield, path: '/manager/guardians' },
     { label: 'Entreprises', icon: Briefcase, path: '/manager/companies' },
+    { label: 'Admins Entreprises', icon: UserCircle, path: '/manager/company-admins' },
     { label: 'Historique', icon: History, path: '/access-history' },
-    { label: 'Rapports', icon: FileBarChart, path: '/manager/reports' },
+    { label: 'Rapports', icon: FileBarChart, path: '/reports' },
   ],
   guardian: [
     { label: 'Tableau de bord', icon: LayoutDashboard, path: '/dashboard' },
