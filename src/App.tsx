@@ -11,9 +11,11 @@ import Sites from "./pages/admin/Sites";
 import Companies from "./pages/manager/Companies";
 import Employees from "./pages/manager/Employees";
 import Guardians from "./pages/manager/Guardians";
+import CompanyAdmins from "./pages/manager/CompanyAdmins";
 import Invitations from "./pages/employee/Invitations";
 import MyQRCode from "./pages/employee/MyQRCode";
 import AccessHistory from "./pages/AccessHistory";
+import Reports from "./pages/Reports";
 import ScanPage from "./pages/guardian/ScanPage";
 import NotFound from "./pages/NotFound";
 
@@ -35,9 +37,11 @@ const App = () => (
             <Route path="/manager/companies/:companyId/employees" element={<Employees />} />
             <Route path="/manager/employees" element={<Employees />} />
             <Route path="/manager/guardians" element={<Guardians />} />
+            <Route path="/manager/company-admins" element={<CompanyAdmins />} />
             <Route path="/invitations" element={<Invitations />} />
             <Route path="/my-qr" element={<MyQRCode />} />
             <Route path="/access-history" element={<AccessHistory />} />
+            <Route path="/reports" element={<Reports />} />
             <Route path="/scan" element={<ScanPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
