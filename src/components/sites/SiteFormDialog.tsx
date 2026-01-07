@@ -17,8 +17,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Site, CreateSiteData } from '@/hooks/useSites';
-import { useManagers, Manager } from '@/hooks/useManagers';
-import { Loader2 } from 'lucide-react';
+import { useManagers } from '@/hooks/useManagers';
+import { ManagerFormDialog } from './ManagerFormDialog';
+import { Loader2, Plus } from 'lucide-react';
 
 interface SiteFormDialogProps {
   open: boolean;
@@ -32,7 +33,8 @@ export function SiteFormDialog({ open, onOpenChange, site, onSubmit }: SiteFormD
   const [address, setAddress] = useState('');
   const [managerId, setManagerId] = useState<string>('none');
   const [submitting, setSubmitting] = useState(false);
-  const { managers, loading: loadingManagers } = useManagers();
+  const [showManagerForm, setShowManagerForm] = useState(false);
+  const { managers, loading: loadingManagers, createManager, fetchManagers } = useManagers();
 
   useEffect(() => {
     if (site) {
@@ -62,69 +64,98 @@ export function SiteFormDialog({ open, onOpenChange, site, onSubmit }: SiteFormD
     }
   };
 
+  const handleManagerCreated = async (data: any) => {
+    const result = await createManager(data);
+    if (result.data) {
+      await fetchManagers();
+      setManagerId(result.data.id);
+    }
+    return result;
+  };
+
   const isEditing = !!site;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>
-            {isEditing ? 'Modifier le site' : 'Nouveau site'}
-          </DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Nom du site *</Label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Tour Eiffel Business Center"
-              required
-              maxLength={100}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="address">Adresse *</Label>
-            <Input
-              id="address"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder="123 Avenue des Champs-Élysées, Paris"
-              required
-              maxLength={255}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="manager">Gestionnaire</Label>
-            <Select value={managerId} onValueChange={setManagerId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Sélectionner un gestionnaire" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Aucun gestionnaire</SelectItem>
-                {managers.map((manager) => (
-                  <SelectItem key={manager.id} value={manager.id}>
-                    {manager.first_name} {manager.last_name} ({manager.email})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {loadingManagers && (
-              <p className="text-sm text-muted-foreground">Chargement des gestionnaires...</p>
-            )}
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Annuler
-            </Button>
-            <Button type="submit" disabled={submitting || !name.trim() || !address.trim()}>
-              {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isEditing ? 'Mettre à jour' : 'Créer'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>
+              {isEditing ? 'Modifier le site' : 'Nouveau site'}
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Nom du site *</Label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Tour Eiffel Business Center"
+                required
+                maxLength={100}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="address">Adresse *</Label>
+              <Input
+                id="address"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="123 Avenue des Champs-Élysées, Paris"
+                required
+                maxLength={255}
+              />
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="manager">Gestionnaire</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowManagerForm(true)}
+                  className="h-auto py-1 px-2 text-xs"
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  Créer un gestionnaire
+                </Button>
+              </div>
+              <Select value={managerId} onValueChange={setManagerId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner un gestionnaire" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Aucun gestionnaire</SelectItem>
+                  {managers.map((manager) => (
+                    <SelectItem key={manager.id} value={manager.id}>
+                      {manager.first_name} {manager.last_name} ({manager.email})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {loadingManagers && (
+                <p className="text-sm text-muted-foreground">Chargement des gestionnaires...</p>
+              )}
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Annuler
+              </Button>
+              <Button type="submit" disabled={submitting || !name.trim() || !address.trim()}>
+                {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isEditing ? 'Mettre à jour' : 'Créer'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <ManagerFormDialog
+        open={showManagerForm}
+        onOpenChange={setShowManagerForm}
+        onSubmit={handleManagerCreated}
+      />
+    </>
   );
 }

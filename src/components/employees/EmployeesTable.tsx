@@ -9,17 +9,18 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Employee } from '@/hooks/useEmployees';
-import { Trash2, User, Briefcase, Mail, Phone, QrCode } from 'lucide-react';
+import { Trash2, User, Briefcase, Mail, Phone, QrCode, Pencil } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
 interface EmployeesTableProps {
   employees: Employee[];
   onDelete: (employee: Employee) => void;
+  onEdit?: (employee: Employee) => void;
   onViewQR?: (employee: Employee) => void;
 }
 
-export function EmployeesTable({ employees, onDelete, onViewQR }: EmployeesTableProps) {
+export function EmployeesTable({ employees, onDelete, onEdit, onViewQR }: EmployeesTableProps) {
   if (employees.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -98,6 +99,16 @@ export function EmployeesTable({ employees, onDelete, onViewQR }: EmployeesTable
                       title="Voir QR Code"
                     >
                       <QrCode className="h-4 w-4" />
+                    </Button>
+                  )}
+                  {onEdit && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onEdit(employee)}
+                      title="Modifier"
+                    >
+                      <Pencil className="h-4 w-4" />
                     </Button>
                   )}
                   <Button
