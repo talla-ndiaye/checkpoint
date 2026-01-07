@@ -9,9 +9,10 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Sites from "./pages/admin/Sites";
 import Companies from "./pages/manager/Companies";
-import Employees from "./pages/manager/Employees";
+import ManagerEmployees from "./pages/manager/Employees";
 import Guardians from "./pages/manager/Guardians";
 import CompanyAdmins from "./pages/manager/CompanyAdmins";
+import CompanyAdminEmployees from "./pages/company-admin/Employees";
 import Invitations from "./pages/employee/Invitations";
 import MyQRCode from "./pages/employee/MyQRCode";
 import AccessHistory from "./pages/AccessHistory";
@@ -34,10 +35,11 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/admin/sites" element={<Sites />} />
             <Route path="/manager/companies" element={<Companies />} />
-            <Route path="/manager/companies/:companyId/employees" element={<Employees />} />
-            <Route path="/manager/employees" element={<Employees />} />
+            <Route path="/manager/companies/:companyId/employees" element={<ManagerEmployees />} />
+            <Route path="/manager/employees" element={<ManagerEmployees />} />
             <Route path="/manager/guardians" element={<Guardians />} />
             <Route path="/manager/company-admins" element={<CompanyAdmins />} />
+            <Route path="/employees" element={<CompanyAdminEmployees />} />
             <Route path="/invitations" element={<Invitations />} />
             <Route path="/my-qr" element={<MyQRCode />} />
             <Route path="/access-history" element={<AccessHistory />} />
