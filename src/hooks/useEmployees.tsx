@@ -166,6 +166,41 @@ export function useEmployees(companyId?: string) {
     }
   };
 
+  const updateEmployee = async (
+    employeeId: string,
+    userId: string,
+    data: { first_name: string; last_name: string; email: string; phone?: string }
+  ) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          first_name: data.first_name,
+          last_name: data.last_name,
+          email: data.email,
+          phone: data.phone || null,
+        })
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Succès',
+        description: 'Employé mis à jour avec succès',
+      });
+
+      await fetchEmployees();
+      return { error: null };
+    } catch (error: any) {
+      toast({
+        title: 'Erreur',
+        description: error.message || 'Impossible de mettre à jour l\'employé',
+        variant: 'destructive',
+      });
+      return { error };
+    }
+  };
+
   const deleteEmployee = async (id: string) => {
     try {
       const { error } = await supabase.from('employees').delete().eq('id', id);
@@ -198,6 +233,7 @@ export function useEmployees(companyId?: string) {
     loading,
     fetchEmployees,
     createEmployee,
+    updateEmployee,
     deleteEmployee,
   };
 }

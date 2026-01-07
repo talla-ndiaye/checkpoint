@@ -3,10 +3,11 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useEmployees, Employee, CreateEmployeeData } from '@/hooks/useEmployees';
 import { EmployeesTable } from '@/components/employees/EmployeesTable';
 import { EmployeeFormDialog } from '@/components/employees/EmployeeFormDialog';
+import { EmployeeEditDialog } from '@/components/employees/EmployeeEditDialog';
 import { DeleteEmployeeDialog } from '@/components/employees/DeleteEmployeeDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Search, Loader2, QrCode, X } from 'lucide-react';
+import { Plus, Search, Loader2, QrCode } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import {
@@ -20,8 +21,9 @@ export default function CompanyAdminEmployees() {
   const { user } = useAuth();
   const [companyId, setCompanyId] = useState<string | undefined>();
   const [loadingCompany, setLoadingCompany] = useState(true);
-  const { employees, loading, createEmployee, deleteEmployee, fetchEmployees } = useEmployees(companyId);
+  const { employees, loading, createEmployee, updateEmployee, deleteEmployee } = useEmployees(companyId);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -59,6 +61,11 @@ export default function CompanyAdminEmployees() {
     setDeleteDialogOpen(true);
   };
 
+  const handleEdit = (employee: Employee) => {
+    setSelectedEmployee(employee);
+    setIsEditOpen(true);
+  };
+
   const handleConfirmDelete = async () => {
     if (selectedEmployee) {
       await deleteEmployee(selectedEmployee.id);
@@ -71,6 +78,13 @@ export default function CompanyAdminEmployees() {
       ...data,
       company_id: companyId!,
     });
+  };
+
+  const handleUpdateEmployee = async (data: { first_name: string; last_name: string; email: string; phone?: string }) => {
+    if (selectedEmployee) {
+      await updateEmployee(selectedEmployee.id, selectedEmployee.user_id, data);
+      setSelectedEmployee(null);
+    }
   };
 
   const handleViewQR = (employee: Employee) => {
@@ -146,6 +160,7 @@ export default function CompanyAdminEmployees() {
           <EmployeesTable
             employees={filteredEmployees}
             onDelete={handleDelete}
+            onEdit={handleEdit}
             onViewQR={handleViewQR}
           />
         )}
@@ -156,6 +171,14 @@ export default function CompanyAdminEmployees() {
           onOpenChange={setIsFormOpen}
           onSubmit={handleCreateEmployee}
           defaultCompanyId={companyId}
+        />
+
+        {/* Edit Dialog */}
+        <EmployeeEditDialog
+          open={isEditOpen}
+          onOpenChange={setIsEditOpen}
+          employee={selectedEmployee}
+          onSubmit={handleUpdateEmployee}
         />
 
         {/* Delete Dialog */}

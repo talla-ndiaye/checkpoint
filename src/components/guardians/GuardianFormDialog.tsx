@@ -9,6 +9,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
 import { useSites } from '@/hooks/useSites';
 
@@ -48,6 +55,8 @@ export function GuardianFormDialog({ open, onOpenChange, onSubmit }: GuardianFor
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!siteId) return;
+    
     setSubmitting(true);
     const success = await onSubmit({
       email,
@@ -72,7 +81,7 @@ export function GuardianFormDialog({ open, onOpenChange, onSubmit }: GuardianFor
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="firstName">Prénom</Label>
+              <Label htmlFor="firstName">Prénom *</Label>
               <Input
                 id="firstName"
                 value={firstName}
@@ -82,7 +91,7 @@ export function GuardianFormDialog({ open, onOpenChange, onSubmit }: GuardianFor
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="lastName">Nom</Label>
+              <Label htmlFor="lastName">Nom *</Label>
               <Input
                 id="lastName"
                 value={lastName}
@@ -93,7 +102,7 @@ export function GuardianFormDialog({ open, onOpenChange, onSubmit }: GuardianFor
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">Email *</Label>
             <Input
               id="email"
               type="email"
@@ -104,7 +113,7 @@ export function GuardianFormDialog({ open, onOpenChange, onSubmit }: GuardianFor
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Mot de passe</Label>
+            <Label htmlFor="password">Mot de passe *</Label>
             <Input
               id="password"
               type="password"
@@ -125,33 +134,40 @@ export function GuardianFormDialog({ open, onOpenChange, onSubmit }: GuardianFor
               placeholder="+33 6 12 34 56 78"
             />
           </div>
-          {sites.length > 1 && (
-            <div className="space-y-2">
-              <Label htmlFor="site">Site</Label>
-              <select
-                id="site"
-                value={siteId}
-                onChange={(e) => setSiteId(e.target.value)}
-                className="w-full h-10 px-3 rounded-md border border-input bg-background"
-                required
-              >
-                {sitesLoading ? (
-                  <option>Chargement...</option>
-                ) : (
-                  sites.map((site) => (
-                    <option key={site.id} value={site.id}>
+          <div className="space-y-2">
+            <Label htmlFor="site">Site d'affectation *</Label>
+            {sitesLoading ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Chargement des sites...
+              </div>
+            ) : sites.length === 0 ? (
+              <p className="text-sm text-destructive">
+                Aucun site disponible. Veuillez d'abord créer un site.
+              </p>
+            ) : (
+              <Select value={siteId} onValueChange={setSiteId} required>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner un site" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sites.map((site) => (
+                    <SelectItem key={site.id} value={site.id}>
                       {site.name}
-                    </option>
-                  ))
-                )}
-              </select>
-            </div>
-          )}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Annuler
             </Button>
-            <Button type="submit" disabled={submitting || !email || !password || !firstName || !lastName}>
+            <Button 
+              type="submit" 
+              disabled={submitting || !email || !password || !firstName || !lastName || !siteId || sites.length === 0}
+            >
               {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Créer
             </Button>
