@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Sites from "./pages/admin/Sites";
+import Managers from "./pages/admin/Managers";
 import Companies from "./pages/manager/Companies";
 import ManagerEmployees from "./pages/manager/Employees";
 import Guardians from "./pages/manager/Guardians";
@@ -34,6 +35,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/admin/sites" element={<Sites />} />
+            <Route path="/admin/managers" element={<Managers />} />
             <Route path="/manager/companies" element={<Companies />} />
             <Route path="/manager/companies/:companyId/employees" element={<ManagerEmployees />} />
             <Route path="/manager/employees" element={<ManagerEmployees />} />

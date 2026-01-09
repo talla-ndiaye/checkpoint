@@ -8,11 +8,18 @@ export interface Manager {
   last_name: string;
   email: string;
   phone?: string | null;
+  sites?: { id: string; name: string }[];
 }
 
 export interface CreateManagerData {
   email: string;
   password: string;
+  first_name: string;
+  last_name: string;
+  phone?: string;
+}
+
+export interface UpdateManagerData {
   first_name: string;
   last_name: string;
   phone?: string;
@@ -47,7 +54,21 @@ export function useManagers() {
         .in('id', managerIds);
 
       if (profilesError) throw profilesError;
-      setManagers(profilesData || []);
+
+      // Get sites for each manager
+      const { data: sitesData, error: sitesError } = await supabase
+        .from('sites')
+        .select('id, name, manager_id')
+        .in('manager_id', managerIds);
+
+      if (sitesError) throw sitesError;
+
+      const managersWithSites = (profilesData || []).map(profile => ({
+        ...profile,
+        sites: (sitesData || []).filter(site => site.manager_id === profile.id),
+      }));
+
+      setManagers(managersWithSites);
     } catch (error) {
       console.error('Error fetching managers:', error);
       setManagers([]);
@@ -111,9 +132,73 @@ export function useManagers() {
     }
   };
 
+  const updateManager = async (id: string, data: UpdateManagerData) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          first_name: data.first_name,
+          last_name: data.last_name,
+          phone: data.phone || null,
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Succès',
+        description: 'Gestionnaire modifié avec succès',
+      });
+
+      await fetchManagers();
+      return { error: null };
+    } catch (error: any) {
+      toast({
+        title: 'Erreur',
+        description: error.message || 'Impossible de modifier le gestionnaire',
+        variant: 'destructive',
+      });
+      return { error };
+    }
+  };
+
+  const deleteManager = async (id: string) => {
+    try {
+      // Remove manager from sites
+      await supabase
+        .from('sites')
+        .update({ manager_id: null })
+        .eq('manager_id', id);
+
+      // Remove manager role
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', id)
+        .eq('role', 'manager');
+
+      if (roleError) throw roleError;
+
+      toast({
+        title: 'Succès',
+        description: 'Gestionnaire supprimé avec succès',
+      });
+
+      await fetchManagers();
+      return { error: null };
+    } catch (error: any) {
+      toast({
+        title: 'Erreur',
+        description: error.message || 'Impossible de supprimer le gestionnaire',
+        variant: 'destructive',
+      });
+      return { error };
+    }
+  };
+
   useEffect(() => {
     fetchManagers();
   }, []);
 
-  return { managers, loading, fetchManagers, createManager };
+  return { managers, loading, fetchManagers, createManager, updateManager, deleteManager };
 }
