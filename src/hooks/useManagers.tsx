@@ -79,41 +79,19 @@ export function useManagers() {
 
   const createManager = async (data: CreateManagerData) => {
     try {
-      // Create user account
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          data: {
-            first_name: data.first_name,
-            last_name: data.last_name,
-          },
+      // Use edge function to create manager with proper permissions
+      const { data: result, error } = await supabase.functions.invoke('create-manager', {
+        body: {
+          email: data.email,
+          password: data.password,
+          first_name: data.first_name,
+          last_name: data.last_name,
+          phone: data.phone,
         },
       });
 
-      if (authError) throw authError;
-      if (!authData.user) throw new Error('Échec de création du compte');
-
-      // Wait for profile trigger
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Update phone if provided
-      if (data.phone) {
-        await supabase
-          .from('profiles')
-          .update({ phone: data.phone })
-          .eq('id', authData.user.id);
-      }
-
-      // Assign manager role
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: authData.user.id,
-          role: 'manager',
-        });
-
-      if (roleError) throw roleError;
+      if (error) throw error;
+      if (result.error) throw new Error(result.error);
 
       toast({
         title: 'Succès',
@@ -121,7 +99,7 @@ export function useManagers() {
       });
 
       await fetchManagers();
-      return { data: authData.user, error: null };
+      return { data: result.user, error: null };
     } catch (error: any) {
       toast({
         title: 'Erreur',
