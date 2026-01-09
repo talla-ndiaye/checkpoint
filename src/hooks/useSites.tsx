@@ -69,13 +69,17 @@ export function useSites() {
 
   const createSite = async (siteData: CreateSiteData) => {
     try {
-      const { data, error } = await supabase
-        .from('sites')
-        .insert([siteData])
-        .select()
-        .single();
+      const { data: result, error } = await supabase.functions.invoke('manage-site', {
+        body: {
+          action: 'create',
+          name: siteData.name,
+          address: siteData.address,
+          manager_id: siteData.manager_id,
+        },
+      });
 
       if (error) throw error;
+      if (result.error) throw new Error(result.error);
 
       toast({
         title: 'Succès',
@@ -83,11 +87,12 @@ export function useSites() {
       });
 
       await fetchSites();
-      return { data, error: null };
-    } catch (error: any) {
+      return { data: result.site, error: null };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Impossible de créer le site';
       toast({
         title: 'Erreur',
-        description: error.message || 'Impossible de créer le site',
+        description: message,
         variant: 'destructive',
       });
       return { data: null, error };
@@ -96,14 +101,18 @@ export function useSites() {
 
   const updateSite = async (id: string, siteData: Partial<CreateSiteData>) => {
     try {
-      const { data, error } = await supabase
-        .from('sites')
-        .update(siteData)
-        .eq('id', id)
-        .select()
-        .single();
+      const { data: result, error } = await supabase.functions.invoke('manage-site', {
+        body: {
+          action: 'update',
+          id,
+          name: siteData.name,
+          address: siteData.address,
+          manager_id: siteData.manager_id,
+        },
+      });
 
       if (error) throw error;
+      if (result.error) throw new Error(result.error);
 
       toast({
         title: 'Succès',
@@ -111,11 +120,12 @@ export function useSites() {
       });
 
       await fetchSites();
-      return { data, error: null };
-    } catch (error: any) {
+      return { data: result.site, error: null };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Impossible de mettre à jour le site';
       toast({
         title: 'Erreur',
-        description: error.message || 'Impossible de mettre à jour le site',
+        description: message,
         variant: 'destructive',
       });
       return { data: null, error };
@@ -124,12 +134,12 @@ export function useSites() {
 
   const deleteSite = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('sites')
-        .delete()
-        .eq('id', id);
+      const { data: result, error } = await supabase.functions.invoke('manage-site', {
+        body: { action: 'delete', id },
+      });
 
       if (error) throw error;
+      if (result.error) throw new Error(result.error);
 
       toast({
         title: 'Succès',
@@ -138,10 +148,11 @@ export function useSites() {
 
       await fetchSites();
       return { error: null };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Impossible de supprimer le site';
       toast({
         title: 'Erreur',
-        description: error.message || 'Impossible de supprimer le site',
+        description: message,
         variant: 'destructive',
       });
       return { error };
