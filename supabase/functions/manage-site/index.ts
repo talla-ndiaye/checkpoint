@@ -26,13 +26,17 @@ Deno.serve(async (req) => {
       global: { headers: { authorization: authHeader } }
     })
     
-    const { data: { user }, error: userError } = await userClient.auth.getUser()
-    if (userError || !user) {
+    // Use getClaims to validate JWT with signing-keys
+    const token = authHeader.replace('Bearer ', '')
+    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token)
+    if (claimsError || !claimsData?.claims) {
       return new Response(JSON.stringify({ error: 'Non autorisé' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
+    
+    const userId = claimsData.claims.sub as string
 
     const adminClient = createClient(supabaseUrl, supabaseServiceKey)
     
@@ -40,7 +44,7 @@ Deno.serve(async (req) => {
     const { data: roleData } = await adminClient
       .from('user_roles')
       .select('role')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .eq('role', 'super_admin')
       .single()
 
