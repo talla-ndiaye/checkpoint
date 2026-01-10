@@ -16,42 +16,40 @@ Deno.serve(async (req) => {
     
     // Get the authorization header to verify caller is super_admin
     const authHeader = req.headers.get('authorization')
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Non autorisé' }), {
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Non autorisé - Token manquant' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    // Create client with user's token to verify permissions
-    const userClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
-      global: { headers: { authorization: authHeader } }
-    })
-    
-    // Use getClaims to validate JWT with signing-keys
-    const token = authHeader.replace('Bearer ', '')
-    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token)
-    if (claimsError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: 'Non autorisé' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-    
-    const userId = claimsData.claims.sub as string
-
-    // Create admin client for service operations
+    // Create admin client for all operations
     const adminClient = createClient(supabaseUrl, supabaseServiceKey)
     
+    // Verify the JWT token using admin client
+    const token = authHeader.replace('Bearer ', '')
+    const { data: userData, error: userError } = await adminClient.auth.getUser(token)
+    
+    if (userError || !userData?.user) {
+      console.error('Auth error:', userError?.message || 'No user found')
+      return new Response(JSON.stringify({ error: 'Non autorisé - Token invalide' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const userId = userData.user.id
+    
     // Check if user is super_admin
-    const { data: roleData } = await adminClient
+    const { data: roleData, error: roleCheckError } = await adminClient
       .from('user_roles')
       .select('role')
       .eq('user_id', userId)
       .eq('role', 'super_admin')
       .single()
 
-    if (!roleData) {
+    if (roleCheckError || !roleData) {
+      console.error('Role check error:', roleCheckError?.message || 'No super_admin role')
       return new Response(JSON.stringify({ error: 'Accès refusé - Super Admin requis' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -76,6 +74,7 @@ Deno.serve(async (req) => {
     })
 
     if (authError) {
+      console.error('Create user error:', authError.message)
       return new Response(JSON.stringify({ error: authError.message }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -96,6 +95,7 @@ Deno.serve(async (req) => {
       .insert({ user_id: authData.user.id, role: 'manager' })
 
     if (roleError) {
+      console.error('Role assignment error:', roleError.message)
       // Cleanup: delete the user if role assignment fails
       await adminClient.auth.admin.deleteUser(authData.user.id)
       return new Response(JSON.stringify({ error: 'Échec de l\'attribution du rôle' }), {
@@ -114,6 +114,7 @@ Deno.serve(async (req) => {
 
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Erreur inconnue'
+    console.error('Unexpected error:', message)
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
