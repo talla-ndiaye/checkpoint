@@ -292,6 +292,12 @@ export type Database = {
     }
     Functions: {
       generate_unique_code: { Args: never; Returns: string }
+      get_company_site_id_for_user: {
+        Args: { _user_id: string }
+        Returns: string
+      }
+      get_guardian_site_id: { Args: { _user_id: string }; Returns: string }
+      get_manager_site_id: { Args: { _user_id: string }; Returns: string }
       get_user_company_id: { Args: { _user_id: string }; Returns: string }
       get_user_site_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
@@ -301,6 +307,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role:
