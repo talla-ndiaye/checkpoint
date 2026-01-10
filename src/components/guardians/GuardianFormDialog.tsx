@@ -9,15 +9,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
-import { useSites } from '@/hooks/useSites';
+import { useManagerSite } from '@/hooks/useManagerSite';
 
 interface GuardianFormDialogProps {
   open: boolean;
@@ -38,9 +31,8 @@ export function GuardianFormDialog({ open, onOpenChange, onSubmit }: GuardianFor
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
-  const [siteId, setSiteId] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const { sites, loading: sitesLoading } = useSites();
+  const { site, loading: siteLoading } = useManagerSite();
 
   useEffect(() => {
     if (open) {
@@ -49,13 +41,12 @@ export function GuardianFormDialog({ open, onOpenChange, onSubmit }: GuardianFor
       setFirstName('');
       setLastName('');
       setPhone('');
-      setSiteId(sites[0]?.id || '');
     }
-  }, [open, sites]);
+  }, [open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!siteId) return;
+    if (!site?.id) return;
     
     setSubmitting(true);
     const success = await onSubmit({
@@ -64,7 +55,7 @@ export function GuardianFormDialog({ open, onOpenChange, onSubmit }: GuardianFor
       firstName,
       lastName,
       phone: phone || undefined,
-      siteId,
+      siteId: site.id,
     });
     setSubmitting(false);
     if (success) {
@@ -135,29 +126,21 @@ export function GuardianFormDialog({ open, onOpenChange, onSubmit }: GuardianFor
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="site">Site d'affectation *</Label>
-            {sitesLoading ? (
+            <Label>Site d'affectation</Label>
+            {siteLoading ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Chargement des sites...
+                Chargement du site...
               </div>
-            ) : sites.length === 0 ? (
+            ) : !site ? (
               <p className="text-sm text-destructive">
-                Aucun site disponible. Veuillez d'abord créer un site.
+                Vous n'êtes pas gestionnaire d'un site.
               </p>
             ) : (
-              <Select value={siteId} onValueChange={setSiteId} required>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner un site" />
-                </SelectTrigger>
-                <SelectContent>
-                  {sites.map((site) => (
-                    <SelectItem key={site.id} value={site.id}>
-                      {site.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="p-3 bg-muted rounded-md">
+                <p className="font-medium">{site.name}</p>
+                <p className="text-sm text-muted-foreground">{site.address}</p>
+              </div>
             )}
           </div>
           <DialogFooter>
@@ -166,7 +149,7 @@ export function GuardianFormDialog({ open, onOpenChange, onSubmit }: GuardianFor
             </Button>
             <Button 
               type="submit" 
-              disabled={submitting || !email || !password || !firstName || !lastName || !siteId || sites.length === 0}
+              disabled={submitting || !email || !password || !firstName || !lastName || !site}
             >
               {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Créer
