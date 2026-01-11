@@ -105,46 +105,39 @@ export function useCompanyAdmins(companyId?: string) {
     companyId: string;
   }) => {
     try {
-      // Create user account
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          data: {
-            first_name: data.firstName,
-            last_name: data.lastName,
-          }
-        }
-      });
-
-      if (authError) throw authError;
-      if (!authData.user) throw new Error('Échec de création du compte');
-
-      // Update profile with phone
-      if (data.phone) {
-        await supabase
-          .from('profiles')
-          .update({ phone: data.phone })
-          .eq('id', authData.user.id);
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      
+      if (!token) {
+        toast.error('Session expirée, veuillez vous reconnecter');
+        return false;
       }
 
-      // Assign company_admin role
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: authData.user.id,
-          role: 'company_admin'
-        });
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            email: data.email,
+            password: data.password,
+            firstName: data.firstName,
+            lastName: data.lastName,
+            phone: data.phone,
+            role: 'company_admin',
+            companyId: data.companyId,
+          }),
+        }
+      );
 
-      if (roleError) throw roleError;
+      const result = await response.json();
 
-      // Update company with admin_id
-      const { error: companyError } = await supabase
-        .from('companies')
-        .update({ admin_id: authData.user.id })
-        .eq('id', data.companyId);
-
-      if (companyError) throw companyError;
+      if (!response.ok) {
+        throw new Error(result.error || 'Erreur lors de la création');
+      }
 
       toast.success('Administrateur créé avec succès');
       fetchAdmins();

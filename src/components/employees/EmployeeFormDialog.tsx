@@ -124,22 +124,28 @@ export function EmployeeFormDialog({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="company">Entreprise *</Label>
-            <Select value={companyId} onValueChange={setCompanyId} required>
-              <SelectTrigger>
-                <SelectValue placeholder="Sélectionner une entreprise" />
-              </SelectTrigger>
-              <SelectContent>
-                {companies.map((company) => (
-                  <SelectItem key={company.id} value={company.id}>
-                    {company.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {loadingCompanies && (
-              <p className="text-sm text-muted-foreground">Chargement des entreprises...</p>
-            )}
+          {defaultCompanyId ? (
+            <input type="hidden" value={defaultCompanyId} />
+          ) : (
+            <>
+              <Label htmlFor="company">Entreprise *</Label>
+              <Select value={companyId} onValueChange={setCompanyId} required>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner une entreprise" />
+                </SelectTrigger>
+                <SelectContent>
+                  {companies.map((company) => (
+                    <SelectItem key={company.id} value={company.id}>
+                      {company.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {loadingCompanies && (
+                <p className="text-sm text-muted-foreground">Chargement des entreprises...</p>
+              )}
+            </>
+          )}
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

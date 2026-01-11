@@ -35,19 +35,6 @@ export function useEmployees(companyId?: string) {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const generateUniqueCode = () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let result = '';
-    for (let i = 0; i < 6; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
-  };
-
-  const generateQRCode = () => {
-    return `EMP-${Date.now()}-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
-  };
-
   const fetchEmployees = async () => {
     try {
       setLoading(true);
@@ -102,60 +89,54 @@ export function useEmployees(companyId?: string) {
 
   const createEmployee = async (employeeData: CreateEmployeeData) => {
     try {
-      // First, create the user account
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: employeeData.email,
-        password: generateUniqueCode() + generateUniqueCode(), // Temporary password
-        options: {
-          data: {
-            first_name: employeeData.first_name,
-            last_name: employeeData.last_name,
-          },
-          emailRedirectTo: `${window.location.origin}/auth`,
-        },
-      });
-
-      if (authError) throw authError;
-      if (!authData.user) throw new Error('Erreur lors de la création du compte');
-
-      // Wait for profile to be created by trigger
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Update phone if provided
-      if (employeeData.phone) {
-        await supabase
-          .from('profiles')
-          .update({ phone: employeeData.phone })
-          .eq('id', authData.user.id);
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      
+      if (!token) {
+        toast({
+          title: 'Erreur',
+          description: 'Session expirée, veuillez vous reconnecter',
+          variant: 'destructive',
+        });
+        return { data: null, error: new Error('Session expirée') };
       }
 
-      // Create employee record
-      const { data: empData, error: empError } = await supabase
-        .from('employees')
-        .insert([{
-          user_id: authData.user.id,
-          company_id: employeeData.company_id,
-          qr_code: generateQRCode(),
-          unique_code: generateUniqueCode(),
-        }])
-        .select()
-        .single();
+      // Generate a temporary password for the employee
+      const tempPassword = Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10).toUpperCase();
 
-      if (empError) throw empError;
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            email: employeeData.email,
+            password: tempPassword,
+            firstName: employeeData.first_name,
+            lastName: employeeData.last_name,
+            phone: employeeData.phone,
+            role: 'employee',
+            companyId: employeeData.company_id,
+          }),
+        }
+      );
 
-      // Add employee role
-      await supabase.from('user_roles').insert([{
-        user_id: authData.user.id,
-        role: 'employee',
-      }]);
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Erreur lors de la création');
+      }
 
       toast({
         title: 'Succès',
-        description: 'Employé créé avec succès. Un email lui a été envoyé.',
+        description: 'Employé créé avec succès',
       });
 
       await fetchEmployees();
-      return { data: empData, error: null };
+      return { data: result, error: null };
     } catch (error: any) {
       toast({
         title: 'Erreur',

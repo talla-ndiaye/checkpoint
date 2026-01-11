@@ -71,48 +71,39 @@ export function useGuardians() {
     siteId: string;
   }) => {
     try {
-      // Create user account
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          data: {
-            first_name: data.firstName,
-            last_name: data.lastName,
-          }
-        }
-      });
-
-      if (authError) throw authError;
-      if (!authData.user) throw new Error('Échec de création du compte');
-
-      // Update profile with phone
-      if (data.phone) {
-        await supabase
-          .from('profiles')
-          .update({ phone: data.phone })
-          .eq('id', authData.user.id);
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      
+      if (!token) {
+        toast.error('Session expirée, veuillez vous reconnecter');
+        return false;
       }
 
-      // Create guardian record
-      const { error: guardianError } = await supabase
-        .from('guardians')
-        .insert({
-          user_id: authData.user.id,
-          site_id: data.siteId
-        });
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            email: data.email,
+            password: data.password,
+            firstName: data.firstName,
+            lastName: data.lastName,
+            phone: data.phone,
+            role: 'guardian',
+            siteId: data.siteId,
+          }),
+        }
+      );
 
-      if (guardianError) throw guardianError;
+      const result = await response.json();
 
-      // Assign guardian role
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: authData.user.id,
-          role: 'guardian'
-        });
-
-      if (roleError) throw roleError;
+      if (!response.ok) {
+        throw new Error(result.error || 'Erreur lors de la création');
+      }
 
       toast.success('Gardien créé avec succès');
       fetchGuardians();
