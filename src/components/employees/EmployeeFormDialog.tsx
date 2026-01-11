@@ -36,6 +36,7 @@ export function EmployeeFormDialog({
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [phone, setPhone] = useState('');
   const [companyId, setCompanyId] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
@@ -46,6 +47,7 @@ export function EmployeeFormDialog({
       setFirstName('');
       setLastName('');
       setEmail('');
+      setPassword('');
       setPhone('');
       setCompanyId(defaultCompanyId || '');
     }
@@ -60,6 +62,7 @@ export function EmployeeFormDialog({
         first_name: firstName.trim(),
         last_name: lastName.trim(),
         email: email.trim(),
+        password: password,
         phone: phone.trim() || undefined,
         company_id: companyId,
       });
@@ -113,6 +116,19 @@ export function EmployeeFormDialog({
             />
           </div>
           <div className="space-y-2">
+            <Label htmlFor="password">Mot de passe *</Label>
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Minimum 6 caractères"
+              required
+              minLength={6}
+              maxLength={100}
+            />
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="phone">Téléphone</Label>
             <Input
               id="phone"
@@ -153,7 +169,7 @@ export function EmployeeFormDialog({
             </Button>
             <Button
               type="submit"
-              disabled={submitting || !firstName.trim() || !lastName.trim() || !email.trim() || !companyId}
+              disabled={submitting || !firstName.trim() || !lastName.trim() || !email.trim() || !password || password.length < 6 || !companyId}
             >
               {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Créer

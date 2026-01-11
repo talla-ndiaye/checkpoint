@@ -24,6 +24,7 @@ export interface Employee {
 
 export interface CreateEmployeeData {
   email: string;
+  password: string;
   first_name: string;
   last_name: string;
   phone?: string;
@@ -101,9 +102,6 @@ export function useEmployees(companyId?: string) {
         return { data: null, error: new Error('Session expirée') };
       }
 
-      // Generate a temporary password for the employee
-      const tempPassword = Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10).toUpperCase();
-
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`,
         {
@@ -114,7 +112,7 @@ export function useEmployees(companyId?: string) {
           },
           body: JSON.stringify({
             email: employeeData.email,
-            password: tempPassword,
+            password: employeeData.password,
             firstName: employeeData.first_name,
             lastName: employeeData.last_name,
             phone: employeeData.phone,
