@@ -2,9 +2,21 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { QrCode, Key, Loader2 } from 'lucide-react';
 import { useInvitations } from '@/hooks/useInvitations';
+import { QRCodeDisplay } from '@/components/ui/QRCodeDisplay';
 
 export default function MyQRCodePage() {
   const { employeeData, isLoading } = useInvitations();
+
+  // Generate QR code data for the employee
+  const getEmployeeQRData = () => {
+    if (!employeeData) return '';
+    return JSON.stringify({
+      type: 'employee',
+      id: employeeData.id,
+      code: employeeData.unique_code,
+      timestamp: Date.now(),
+    });
+  };
 
   return (
     <DashboardLayout>
@@ -29,9 +41,7 @@ export default function MyQRCodePage() {
               </CardHeader>
               <CardContent className="flex items-center justify-center">
                 <div className="qr-container p-6 bg-white rounded-2xl shadow-lg">
-                  <div className="h-48 w-48 bg-gradient-to-br from-primary/10 to-accent/10 rounded-xl flex items-center justify-center">
-                    <QrCode className="h-32 w-32 text-primary" />
-                  </div>
+                  <QRCodeDisplay data={getEmployeeQRData()} size={192} />
                 </div>
               </CardContent>
             </Card>

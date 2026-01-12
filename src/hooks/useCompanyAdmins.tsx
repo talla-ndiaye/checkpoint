@@ -21,7 +21,7 @@ export interface CompanyAdmin {
   };
 }
 
-export function useCompanyAdmins(companyId?: string) {
+export function useCompanyAdmins(siteId?: string) {
   const [admins, setAdmins] = useState<CompanyAdmin[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -29,34 +29,42 @@ export function useCompanyAdmins(companyId?: string) {
     try {
       setLoading(true);
       
-      // Get all company_admin roles
-      let roleQuery = supabase
-        .from('user_roles')
-        .select('user_id, role, created_at')
-        .eq('role', 'company_admin');
-
-      const { data: roleData, error: roleError } = await roleQuery;
-      if (roleError) throw roleError;
-
-      if (!roleData || roleData.length === 0) {
-        setAdmins([]);
-        return;
-      }
-
-      // Get companies with these admins
-      const adminUserIds = roleData.map(r => r.user_id);
-      
+      // First get companies, optionally filtered by siteId
       let companiesQuery = supabase
         .from('companies')
-        .select('id, name, admin_id')
-        .in('admin_id', adminUserIds);
+        .select('id, name, admin_id, site_id')
+        .not('admin_id', 'is', null);
 
-      if (companyId) {
-        companiesQuery = companiesQuery.eq('id', companyId);
+      if (siteId) {
+        companiesQuery = companiesQuery.eq('site_id', siteId);
       }
 
       const { data: companiesData, error: companiesError } = await companiesQuery;
       if (companiesError) throw companiesError;
+
+      if (!companiesData || companiesData.length === 0) {
+        setAdmins([]);
+        return;
+      }
+
+      // Get admin user IDs from companies
+      const adminUserIds = companiesData
+        .filter(c => c.admin_id)
+        .map(c => c.admin_id!);
+
+      if (adminUserIds.length === 0) {
+        setAdmins([]);
+        return;
+      }
+
+      // Get roles for these admins
+      const { data: roleData, error: roleError } = await supabase
+        .from('user_roles')
+        .select('user_id, role, created_at')
+        .eq('role', 'company_admin')
+        .in('user_id', adminUserIds);
+
+      if (roleError) throw roleError;
 
       // Get profiles
       const { data: profiles, error: profilesError } = await supabase
@@ -67,10 +75,10 @@ export function useCompanyAdmins(companyId?: string) {
       if (profilesError) throw profilesError;
 
       // Build admin objects
-      const adminsList: CompanyAdmin[] = (companiesData || [])
+      const adminsList: CompanyAdmin[] = companiesData
         .filter(c => c.admin_id)
         .map(company => {
-          const roleInfo = roleData.find(r => r.user_id === company.admin_id);
+          const roleInfo = roleData?.find(r => r.user_id === company.admin_id);
           const profile = profiles?.find(p => p.id === company.admin_id);
           
           return {
@@ -186,7 +194,7 @@ export function useCompanyAdmins(companyId?: string) {
 
   useEffect(() => {
     fetchAdmins();
-  }, [companyId]);
+  }, [siteId]);
 
   return { admins, loading, fetchAdmins, createCompanyAdmin, removeCompanyAdmin };
 }
