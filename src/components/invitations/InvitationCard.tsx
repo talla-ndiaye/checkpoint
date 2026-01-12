@@ -1,8 +1,16 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, X, Calendar, Clock, User, Key } from 'lucide-react';
+import { MessageCircle, X, Calendar, Clock, User, Key, QrCode } from 'lucide-react';
+import { QRCodeDisplay } from '@/components/ui/QRCodeDisplay';
 import type { Invitation } from '@/hooks/useInvitations';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 
 interface InvitationCardProps {
   invitation: Invitation;
@@ -20,6 +28,18 @@ const statusConfig: Record<string, { label: string; variant: 'default' | 'second
 export function InvitationCard({ invitation, onShare, onCancel }: InvitationCardProps) {
   const status = statusConfig[invitation.status] || statusConfig.pending;
   const isPending = invitation.status === 'pending';
+
+  // Generate QR code data for the invitation
+  const getInvitationQRData = () => {
+    return JSON.stringify({
+      type: 'invitation',
+      id: invitation.id,
+      code: invitation.alpha_code,
+      visitor: invitation.visitor_name,
+      date: invitation.visit_date,
+      time: invitation.visit_time,
+    });
+  };
 
   return (
     <Card className="glass-card overflow-hidden">
@@ -43,11 +63,37 @@ export function InvitationCard({ invitation, onShare, onCancel }: InvitationCard
               </div>
             </div>
 
-            <div className="flex items-center gap-2 p-3 bg-primary/5 rounded-lg border border-primary/10">
-              <Key className="h-5 w-5 text-primary" />
-              <span className="font-mono text-lg font-bold tracking-wider text-primary">
-                {invitation.alpha_code}
-              </span>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 p-3 bg-primary/5 rounded-lg border border-primary/10 flex-1">
+                <Key className="h-5 w-5 text-primary" />
+                <span className="font-mono text-lg font-bold tracking-wider text-primary">
+                  {invitation.alpha_code}
+                </span>
+              </div>
+              
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="icon" className="shrink-0">
+                    <QrCode className="h-5 w-5" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>QR Code - {invitation.visitor_name}</DialogTitle>
+                  </DialogHeader>
+                  <div className="flex flex-col items-center gap-4 py-4">
+                    <div className="p-4 bg-white rounded-2xl shadow-lg">
+                      <QRCodeDisplay data={getInvitationQRData()} size={250} />
+                    </div>
+                    <div className="text-center space-y-1">
+                      <p className="font-mono text-2xl font-bold text-primary">{invitation.alpha_code}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(invitation.visit_date).toLocaleDateString('fr-FR')} à {invitation.visit_time}
+                      </p>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
 

@@ -3,12 +3,14 @@ import { Plus, UserCog } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { useCompanyAdmins, CompanyAdmin } from '@/hooks/useCompanyAdmins';
+import { useManagerSite } from '@/hooks/useManagerSite';
 import { CompanyAdminsTable } from '@/components/company-admins/CompanyAdminsTable';
 import { CompanyAdminFormDialog } from '@/components/company-admins/CompanyAdminFormDialog';
 import { DeleteCompanyAdminDialog } from '@/components/company-admins/DeleteCompanyAdminDialog';
 
 export default function CompanyAdmins() {
-  const { admins, loading, createCompanyAdmin, removeCompanyAdmin } = useCompanyAdmins();
+  const { site } = useManagerSite();
+  const { admins, loading, createCompanyAdmin, removeCompanyAdmin } = useCompanyAdmins(site?.id);
   const [showForm, setShowForm] = useState(false);
   const [adminToRemove, setAdminToRemove] = useState<CompanyAdmin | null>(null);
 
