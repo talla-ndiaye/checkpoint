@@ -4,6 +4,10 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { RecentActivity } from '@/components/dashboard/RecentActivity';
 import { AccessChart } from '@/components/dashboard/AccessChart';
+import { ManagerDashboard } from '@/components/dashboard/ManagerDashboard';
+import { CompanyAdminDashboard } from '@/components/dashboard/CompanyAdminDashboard';
+import { EmployeeDashboard } from '@/components/dashboard/EmployeeDashboard';
+import { GuardianDashboard } from '@/components/dashboard/GuardianDashboard';
 import { useAuth } from '@/hooks/useAuth';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { useRecentActivity } from '@/hooks/useAccessLogs';
@@ -14,7 +18,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
+  const { user, loading, userRole } = useAuth();
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
   const { data: recentLogs, isLoading: activityLoading } = useRecentActivity(5);
 
@@ -35,113 +39,132 @@ export default function Dashboard() {
     timestamp: formatDistanceToNow(new Date(log.timestamp), { addSuffix: false, locale: fr })
   }));
 
+  // Render role-specific dashboard
+  const renderDashboardContent = () => {
+    switch (userRole) {
+      case 'manager':
+        return <ManagerDashboard />;
+      case 'company_admin':
+        return <CompanyAdminDashboard />;
+      case 'employee':
+        return <EmployeeDashboard />;
+      case 'guardian':
+        return <GuardianDashboard />;
+      case 'super_admin':
+      default:
+        return (
+          <div className="space-y-8">
+            {/* Header */}
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Tableau de bord</h1>
+              <p className="text-muted-foreground mt-1">
+                Vue d'ensemble de l'activité et des statistiques
+              </p>
+            </div>
+
+            {/* Stats Grid */}
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+              {statsLoading ? (
+                <>
+                  <Skeleton className="h-32 rounded-xl" />
+                  <Skeleton className="h-32 rounded-xl" />
+                  <Skeleton className="h-32 rounded-xl" />
+                  <Skeleton className="h-32 rounded-xl" />
+                </>
+              ) : (
+                <>
+                  <StatCard
+                    title="Sites actifs"
+                    value={stats?.sitesCount || 0}
+                    icon={Building2}
+                    variant="primary"
+                  />
+                  <StatCard
+                    title="Employés"
+                    value={stats?.usersCount || 0}
+                    icon={Users}
+                  />
+                  <StatCard
+                    title="Accès aujourd'hui"
+                    value={stats?.todayAccessCount || 0}
+                    icon={Shield}
+                    variant="accent"
+                  />
+                  <StatCard
+                    title="Invitations actives"
+                    value={stats?.activeInvitationsCount || 0}
+                    icon={CalendarPlus}
+                    variant="success"
+                  />
+                </>
+              )}
+            </div>
+
+            {/* Charts and Activity */}
+            <div className="grid gap-6 lg:grid-cols-3">
+              {statsLoading ? (
+                <Skeleton className="lg:col-span-2 h-[380px] rounded-xl" />
+              ) : (
+                <AccessChart data={stats?.weeklyAccessData || []} />
+              )}
+
+              {activityLoading ? (
+                <Skeleton className="h-[380px] rounded-xl" />
+              ) : (
+                <RecentActivity activities={activities} />
+              )}
+            </div>
+
+            {/* Quick Actions */}
+            <div className="glass-card rounded-xl p-6">
+              <h3 className="text-lg font-semibold mb-4">Actions rapides</h3>
+              <div className="grid gap-4 md:grid-cols-3">
+                <button 
+                  onClick={() => navigate('/admin/sites')}
+                  className="flex items-center gap-4 p-4 rounded-xl bg-primary/5 border border-primary/20 hover:bg-primary/10 transition-colors text-left group"
+                >
+                  <div className="p-3 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                    <Building2 className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium">Gérer les sites</p>
+                    <p className="text-sm text-muted-foreground">Voir tous les sites</p>
+                  </div>
+                </button>
+                <button 
+                  onClick={() => navigate('/manager/companies')}
+                  className="flex items-center gap-4 p-4 rounded-xl bg-accent/5 border border-accent/20 hover:bg-accent/10 transition-colors text-left group"
+                >
+                  <div className="p-3 rounded-xl bg-accent/10 group-hover:bg-accent/20 transition-colors">
+                    <Users className="h-5 w-5 text-accent" />
+                  </div>
+                  <div>
+                    <p className="font-medium">Entreprises</p>
+                    <p className="text-sm text-muted-foreground">Gérer les entreprises</p>
+                  </div>
+                </button>
+                <button 
+                  onClick={() => navigate('/access-history')}
+                  className="flex items-center gap-4 p-4 rounded-xl bg-success/5 border border-success/20 hover:bg-success/10 transition-colors text-left group"
+                >
+                  <div className="p-3 rounded-xl bg-success/10 group-hover:bg-success/20 transition-colors">
+                    <Shield className="h-5 w-5 text-success" />
+                  </div>
+                  <div>
+                    <p className="font-medium">Historique</p>
+                    <p className="text-sm text-muted-foreground">Voir les accès</p>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+    }
+  };
+
   return (
     <DashboardLayout>
-      <div className="space-y-8">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Tableau de bord</h1>
-          <p className="text-muted-foreground mt-1">
-            Vue d'ensemble de l'activité et des statistiques
-          </p>
-        </div>
-
-        {/* Stats Grid */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {statsLoading ? (
-            <>
-              <Skeleton className="h-32 rounded-xl" />
-              <Skeleton className="h-32 rounded-xl" />
-              <Skeleton className="h-32 rounded-xl" />
-              <Skeleton className="h-32 rounded-xl" />
-            </>
-          ) : (
-            <>
-              <StatCard
-                title="Sites actifs"
-                value={stats?.sitesCount || 0}
-                icon={Building2}
-                variant="primary"
-              />
-              <StatCard
-                title="Employés"
-                value={stats?.usersCount || 0}
-                icon={Users}
-              />
-              <StatCard
-                title="Accès aujourd'hui"
-                value={stats?.todayAccessCount || 0}
-                icon={Shield}
-                variant="accent"
-              />
-              <StatCard
-                title="Invitations actives"
-                value={stats?.activeInvitationsCount || 0}
-                icon={CalendarPlus}
-                variant="success"
-              />
-            </>
-          )}
-        </div>
-
-        {/* Charts and Activity */}
-        <div className="grid gap-6 lg:grid-cols-3">
-          {statsLoading ? (
-            <Skeleton className="lg:col-span-2 h-[380px] rounded-xl" />
-          ) : (
-            <AccessChart data={stats?.weeklyAccessData || []} />
-          )}
-
-          {activityLoading ? (
-            <Skeleton className="h-[380px] rounded-xl" />
-          ) : (
-            <RecentActivity activities={activities} />
-          )}
-        </div>
-
-        {/* Quick Actions */}
-        <div className="glass-card rounded-xl p-6">
-          <h3 className="text-lg font-semibold mb-4">Actions rapides</h3>
-          <div className="grid gap-4 md:grid-cols-3">
-            <button 
-              onClick={() => navigate('/admin/sites')}
-              className="flex items-center gap-4 p-4 rounded-xl bg-primary/5 border border-primary/20 hover:bg-primary/10 transition-colors text-left group"
-            >
-              <div className="p-3 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                <Building2 className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="font-medium">Gérer les sites</p>
-                <p className="text-sm text-muted-foreground">Voir tous les sites</p>
-              </div>
-            </button>
-            <button 
-              onClick={() => navigate('/manager/companies')}
-              className="flex items-center gap-4 p-4 rounded-xl bg-accent/5 border border-accent/20 hover:bg-accent/10 transition-colors text-left group"
-            >
-              <div className="p-3 rounded-xl bg-accent/10 group-hover:bg-accent/20 transition-colors">
-                <Users className="h-5 w-5 text-accent" />
-              </div>
-              <div>
-                <p className="font-medium">Entreprises</p>
-                <p className="text-sm text-muted-foreground">Gérer les entreprises</p>
-              </div>
-            </button>
-            <button 
-              onClick={() => navigate('/access-history')}
-              className="flex items-center gap-4 p-4 rounded-xl bg-success/5 border border-success/20 hover:bg-success/10 transition-colors text-left group"
-            >
-              <div className="p-3 rounded-xl bg-success/10 group-hover:bg-success/20 transition-colors">
-                <Shield className="h-5 w-5 text-success" />
-              </div>
-              <div>
-                <p className="font-medium">Historique</p>
-                <p className="text-sm text-muted-foreground">Voir les accès</p>
-              </div>
-            </button>
-          </div>
-        </div>
-      </div>
+      {renderDashboardContent()}
     </DashboardLayout>
   );
 }
