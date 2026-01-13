@@ -18,89 +18,108 @@ export function useQRScanner() {
   const [scanning, setScanning] = useState(false);
   const [lastScan, setLastScan] = useState<ScanResult | null>(null);
 
-  const validateCode = useCallback(async (code: string): Promise<ScanResult | null> => {
+  const validateCode = useCallback(async (rawCode: string): Promise<ScanResult | null> => {
     try {
-      // First try to find an employee
-      const { data: employee, error: empError } = await supabase
-        .from('employees')
-        .select(`
-          id,
-          unique_code,
-          user_id,
-          company_id
-        `)
-        .or(`unique_code.eq.${code},qr_code.eq.${code}`)
-        .maybeSingle();
-
-      if (empError) throw empError;
-
-      if (employee) {
-        // Get profile and company info
-        const [profileRes, companyRes] = await Promise.all([
-          supabase.from('profiles').select('first_name, last_name').eq('id', employee.user_id).single(),
-          supabase.from('companies').select('name').eq('id', employee.company_id).single()
-        ]);
-
-        return {
-          type: 'employee',
-          name: `${profileRes.data?.first_name} ${profileRes.data?.last_name}`,
-          code: employee.unique_code,
-          companyName: companyRes.data?.name
-        };
+      // Try to parse JSON QR code data
+      let codeToSearch = rawCode;
+      let parsedType: 'employee' | 'invitation' | null = null;
+      
+      try {
+        const parsed = JSON.parse(rawCode);
+        if (parsed.code) {
+          codeToSearch = parsed.code;
+          parsedType = parsed.type === 'employee' ? 'employee' : parsed.type === 'invitation' ? 'invitation' : null;
+        }
+      } catch {
+        // Not JSON, use raw code (manual entry case)
+        codeToSearch = rawCode.toUpperCase().trim();
       }
 
-      // Try to find an invitation
-      const { data: invitation, error: invError } = await supabase
-        .from('invitations')
-        .select(`
-          id,
-          alpha_code,
-          visitor_name,
-          visit_date,
-          visit_time,
-          status,
-          employee_id
-        `)
-        .or(`alpha_code.eq.${code},qr_code.eq.${code}`)
-        .maybeSingle();
-
-      if (invError) throw invError;
-
-      if (invitation) {
-        if (invitation.status !== 'pending' && invitation.status !== 'approved') {
-          toast.error('Cette invitation a déjà été utilisée ou annulée');
-          return null;
-        }
-
-        // Get host info
-        const { data: empData } = await supabase
+      // If we know it's an employee from QR data, search employees only
+      if (parsedType === 'employee' || !parsedType) {
+        const { data: employee, error: empError } = await supabase
           .from('employees')
-          .select('user_id')
-          .eq('id', invitation.employee_id)
-          .single();
+          .select(`
+            id,
+            unique_code,
+            user_id,
+            company_id
+          `)
+          .eq('unique_code', codeToSearch)
+          .maybeSingle();
 
-        let hostName = 'Inconnu';
-        if (empData) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('first_name, last_name')
-            .eq('id', empData.user_id)
-            .single();
-          if (profile) {
-            hostName = `${profile.first_name} ${profile.last_name}`;
-          }
+        if (empError) throw empError;
+
+        if (employee) {
+          // Get profile and company info
+          const [profileRes, companyRes] = await Promise.all([
+            supabase.from('profiles').select('first_name, last_name').eq('id', employee.user_id).single(),
+            supabase.from('companies').select('name').eq('id', employee.company_id).single()
+          ]);
+
+          return {
+            type: 'employee',
+            name: `${profileRes.data?.first_name || ''} ${profileRes.data?.last_name || ''}`.trim() || 'Inconnu',
+            code: employee.unique_code,
+            companyName: companyRes.data?.name
+          };
         }
+      }
 
-        return {
-          type: 'visitor',
-          name: invitation.visitor_name,
-          code: invitation.alpha_code,
-          visitorInfo: {
-            visitDate: invitation.visit_date,
-            visitTime: invitation.visit_time,
-            hostName
+      // If we know it's an invitation from QR data, or employee not found
+      if (parsedType === 'invitation' || !parsedType) {
+        const { data: invitation, error: invError } = await supabase
+          .from('invitations')
+          .select(`
+            id,
+            alpha_code,
+            visitor_name,
+            visit_date,
+            visit_time,
+            status,
+            employee_id
+          `)
+          .eq('alpha_code', codeToSearch)
+          .maybeSingle();
+
+        if (invError) throw invError;
+
+        if (invitation) {
+          if (invitation.status !== 'pending' && invitation.status !== 'approved') {
+            toast.error('Cette invitation a déjà été utilisée ou annulée');
+            return null;
           }
-        };
+
+          // Get host info
+          const { data: empData } = await supabase
+            .from('employees')
+            .select('user_id')
+            .eq('id', invitation.employee_id)
+            .single();
+
+          let hostName = 'Inconnu';
+          if (empData) {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('first_name, last_name')
+              .eq('id', empData.user_id)
+              .single();
+            if (profile) {
+              hostName = `${profile.first_name} ${profile.last_name}`;
+            }
+          }
+
+          return {
+            type: 'visitor',
+            name: invitation.visitor_name,
+            code: invitation.alpha_code,
+            visitorInfo: {
+              visitDate: invitation.visit_date,
+              visitTime: invitation.visit_time,
+              hostName
+            }
+          };
+        }
       }
 
       toast.error('Code non reconnu');
