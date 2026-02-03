@@ -19,6 +19,7 @@ import MyQRCode from "./pages/employee/MyQRCode";
 import AccessHistory from "./pages/AccessHistory";
 import Reports from "./pages/Reports";
 import ScanPage from "./pages/guardian/ScanPage";
+import Analytics from "./pages/Analytics";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -47,6 +48,7 @@ const App = () => (
             <Route path="/access-history" element={<AccessHistory />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/scan" element={<ScanPage />} />
+            <Route path="/analytics" element={<Analytics />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
