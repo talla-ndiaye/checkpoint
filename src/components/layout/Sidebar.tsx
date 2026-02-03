@@ -13,6 +13,7 @@ import {
   LogOut,
   LayoutDashboard,
   X,
+  BarChart3,
 } from 'lucide-react';
 import { UserRole, ROLE_LABELS } from '@/lib/types';
 import { RoleBadge } from '@/components/ui/RoleBadge';
@@ -32,6 +33,7 @@ const menuItemsByRole: Record<UserRole, { label: string; icon: React.ElementType
     { label: 'Sites', icon: Building2, path: '/admin/sites' },
     { label: 'Gestionnaires', icon: Users, path: '/admin/managers' },
     { label: 'Historique', icon: History, path: '/access-history' },
+    { label: 'Analytiques', icon: BarChart3, path: '/analytics' },
     { label: 'Rapports', icon: FileBarChart, path: '/reports' },
     { label: 'Paramètres', icon: Settings, path: '/admin/settings' },
   ],
@@ -41,6 +43,7 @@ const menuItemsByRole: Record<UserRole, { label: string; icon: React.ElementType
     { label: 'Entreprises', icon: Briefcase, path: '/manager/companies' },
     { label: 'Admins Entreprises', icon: UserCircle, path: '/manager/company-admins' },
     { label: 'Historique', icon: History, path: '/access-history' },
+    { label: 'Analytiques', icon: BarChart3, path: '/analytics' },
     { label: 'Rapports', icon: FileBarChart, path: '/reports' },
   ],
   guardian: [
