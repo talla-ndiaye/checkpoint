@@ -1,7 +1,8 @@
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, X, Calendar, Clock, User, Key, QrCode } from 'lucide-react';
+import { MessageCircle, X, Calendar, Clock, User, Key, QrCode, ExternalLink } from 'lucide-react';
 import { QRCodeDisplay } from '@/components/ui/QRCodeDisplay';
 import type { Invitation } from '@/hooks/useInvitations';
 import {
@@ -26,10 +27,10 @@ const statusConfig: Record<string, { label: string; variant: 'default' | 'second
 };
 
 export function InvitationCard({ invitation, onShare, onCancel }: InvitationCardProps) {
+  const navigate = useNavigate();
   const status = statusConfig[invitation.status] || statusConfig.pending;
   const isPending = invitation.status === 'pending';
 
-  // Generate QR code data for the invitation
   const getInvitationQRData = () => {
     return JSON.stringify({
       type: 'invitation',
@@ -41,8 +42,15 @@ export function InvitationCard({ invitation, onShare, onCancel }: InvitationCard
     });
   };
 
+  const handleCardClick = () => {
+    navigate(`/invitation/${invitation.id}`);
+  };
+
   return (
-    <Card className="glass-card overflow-hidden">
+    <Card 
+      className="glass-card overflow-hidden cursor-pointer hover:border-primary/30 transition-colors"
+      onClick={handleCardClick}
+    >
       <CardContent className="p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div className="space-y-3 flex-1">
@@ -50,6 +58,17 @@ export function InvitationCard({ invitation, onShare, onCancel }: InvitationCard
               <User className="h-4 w-4 text-muted-foreground" />
               <span className="font-semibold text-foreground">{invitation.visitor_name}</span>
               <Badge variant={status.variant}>{status.label}</Badge>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-6 w-6 ml-auto"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/invitation/${invitation.id}`);
+                }}
+              >
+                <ExternalLink className="h-4 w-4" />
+              </Button>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-muted-foreground">
@@ -73,7 +92,12 @@ export function InvitationCard({ invitation, onShare, onCancel }: InvitationCard
               
               <Dialog>
                 <DialogTrigger asChild>
-                  <Button variant="outline" size="icon" className="shrink-0">
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    className="shrink-0"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <QrCode className="h-5 w-5" />
                   </Button>
                 </DialogTrigger>
@@ -98,7 +122,7 @@ export function InvitationCard({ invitation, onShare, onCancel }: InvitationCard
           </div>
 
           {isPending && (
-            <div className="flex sm:flex-col gap-2">
+            <div className="flex sm:flex-col gap-2" onClick={(e) => e.stopPropagation()}>
               <Button
                 onClick={() => onShare(invitation)}
                 className="flex-1 sm:flex-none gap-2"
