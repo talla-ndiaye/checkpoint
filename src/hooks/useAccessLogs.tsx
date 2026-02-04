@@ -13,6 +13,7 @@ export interface AccessLog {
   site?: { name: string };
   user_profile?: { first_name: string; last_name: string } | null;
   invitation?: { visitor_name: string } | null;
+  walk_in_visitor?: { first_name: string; last_name: string; id_card_number: string } | null;
 }
 
 interface UseAccessLogsOptions {
@@ -33,7 +34,8 @@ export function useAccessLogs(options: UseAccessLogsOptions = {}) {
         .select(`
           *,
           site:sites(name),
-          invitation:invitations(visitor_name)
+          invitation:invitations(visitor_name),
+          walk_in_visitor:walk_in_visitors(first_name, last_name, id_card_number)
         `)
         .order('timestamp', { ascending: false })
         .limit(100);
@@ -87,7 +89,8 @@ export function useRecentActivity(limit = 5) {
         .select(`
           *,
           site:sites(name),
-          invitation:invitations(visitor_name)
+          invitation:invitations(visitor_name),
+          walk_in_visitor:walk_in_visitors(first_name, last_name, id_card_number)
         `)
         .order('timestamp', { ascending: false })
         .limit(limit);

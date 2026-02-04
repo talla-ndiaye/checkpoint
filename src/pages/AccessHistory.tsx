@@ -56,6 +56,9 @@ export default function AccessHistory() {
     if (log.invitation?.visitor_name) {
       return `${log.invitation.visitor_name} (Visiteur)`;
     }
+    if (log.walk_in_visitor) {
+      return `${log.walk_in_visitor.first_name} ${log.walk_in_visitor.last_name} (CNI)`;
+    }
     return 'Inconnu';
   };
 
@@ -156,7 +159,11 @@ export default function AccessHistory() {
                 </TableRow>
               ) : (
                 accessLogs?.map((log) => (
-                  <TableRow key={log.id}>
+                  <TableRow 
+                    key={log.id} 
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => navigate(`/access-history/${log.id}`)}
+                  >
                     <TableCell>
                       <div className="font-medium">
                         {format(new Date(log.timestamp), 'dd/MM/yyyy', { locale: fr })}

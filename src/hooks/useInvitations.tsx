@@ -130,14 +130,22 @@ export function useInvitations() {
     },
   });
 
+  const getPublicInvitationUrl = (alphaCode: string) => {
+    // Use published URL for the public invitation link
+    return `https://tallandiaye.lovable.app/i/${alphaCode}`;
+  };
+
   const shareViaWhatsApp = (invitation: Invitation) => {
+    const publicUrl = getPublicInvitationUrl(invitation.alpha_code);
+    
     const message = encodeURIComponent(
       `Bonjour ${invitation.visitor_name},\n\n` +
       `Vous êtes invité(e) à nous rendre visite.\n\n` +
       `📅 Date: ${new Date(invitation.visit_date).toLocaleDateString('fr-FR')}\n` +
       `🕐 Heure: ${invitation.visit_time}\n` +
       `🔑 Code d'accès: ${invitation.alpha_code}\n\n` +
-      `Présentez ce code au gardien à votre arrivée.\n\n` +
+      `📱 Lien de votre invitation:\n${publicUrl}\n\n` +
+      `Présentez le QR code ou le code manuel au gardien à votre arrivée.\n\n` +
       `À bientôt !`
     );
     
