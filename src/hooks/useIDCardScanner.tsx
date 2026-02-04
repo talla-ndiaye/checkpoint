@@ -1,0 +1,149 @@
+import { useState, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+
+export interface IDCardData {
+  firstName: string;
+  lastName: string;
+  idCardNumber: string;
+  birthDate: string | null;
+  gender: string | null;
+  nationality: string;
+  address: string | null;
+  expiryDate: string | null;
+}
+
+export interface WalkInVisitorResult {
+  id: string;
+  firstName: string;
+  lastName: string;
+  idCardNumber: string;
+}
+
+export function useIDCardScanner() {
+  const [scanning, setScanning] = useState(false);
+  const [extractedData, setExtractedData] = useState<IDCardData | null>(null);
+  const [processing, setProcessing] = useState(false);
+
+  const extractIDCardData = useCallback(async (imageBase64: string): Promise<IDCardData | null> => {
+    setProcessing(true);
+    try {
+      console.log('Sending image to OCR edge function...');
+      
+      const { data, error } = await supabase.functions.invoke('scan-id-card', {
+        body: { imageBase64 }
+      });
+
+      if (error) {
+        console.error('Edge function error:', error);
+        toast.error('Erreur lors de l\'analyse de la carte');
+        return null;
+      }
+
+      if (!data?.success || !data?.data) {
+        toast.error(data?.error || 'Impossible de lire les informations de la carte');
+        return null;
+      }
+
+      const idCardData = data.data as IDCardData;
+      setExtractedData(idCardData);
+      toast.success('Informations extraites avec succès');
+      return idCardData;
+    } catch (error) {
+      console.error('Error extracting ID card data:', error);
+      toast.error('Erreur lors de l\'extraction des données');
+      return null;
+    } finally {
+      setProcessing(false);
+    }
+  }, []);
+
+  const registerWalkInVisitor = useCallback(async (
+    idCardData: IDCardData,
+    actionType: 'entry' | 'exit'
+  ): Promise<WalkInVisitorResult | null> => {
+    try {
+      // Get guardian's site
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Non authentifié');
+
+      const { data: guardian, error: guardianError } = await supabase
+        .from('guardians')
+        .select('site_id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (guardianError || !guardian) {
+        throw new Error('Gardien non trouvé');
+      }
+
+      // Create walk-in visitor record
+      const { data: visitor, error: visitorError } = await supabase
+        .from('walk_in_visitors')
+        .insert({
+          site_id: guardian.site_id,
+          first_name: idCardData.firstName,
+          last_name: idCardData.lastName,
+          id_card_number: idCardData.idCardNumber,
+          birth_date: idCardData.birthDate,
+          gender: idCardData.gender,
+          nationality: idCardData.nationality || 'SEN',
+          address: idCardData.address,
+          id_card_expiry: idCardData.expiryDate,
+          scanned_by: user.id
+        })
+        .select('id, first_name, last_name, id_card_number')
+        .single();
+
+      if (visitorError) {
+        console.error('Error creating walk-in visitor:', visitorError);
+        throw new Error('Erreur lors de l\'enregistrement du visiteur');
+      }
+
+      // Record access log
+      const { error: accessError } = await supabase
+        .from('access_logs')
+        .insert({
+          site_id: guardian.site_id,
+          scanned_by: user.id,
+          action_type: actionType,
+          walk_in_visitor_id: visitor.id
+        });
+
+      if (accessError) {
+        console.error('Error recording access:', accessError);
+        throw new Error('Erreur lors de l\'enregistrement de l\'accès');
+      }
+
+      toast.success(`${actionType === 'entry' ? 'Entrée' : 'Sortie'} enregistrée pour ${visitor.first_name} ${visitor.last_name}`);
+      
+      return {
+        id: visitor.id,
+        firstName: visitor.first_name,
+        lastName: visitor.last_name,
+        idCardNumber: visitor.id_card_number
+      };
+    } catch (error) {
+      console.error('Error registering walk-in visitor:', error);
+      toast.error(error instanceof Error ? error.message : 'Erreur lors de l\'enregistrement');
+      return null;
+    }
+  }, []);
+
+  const reset = useCallback(() => {
+    setExtractedData(null);
+    setScanning(false);
+    setProcessing(false);
+  }, []);
+
+  return {
+    scanning,
+    setScanning,
+    extractedData,
+    setExtractedData,
+    processing,
+    extractIDCardData,
+    registerWalkInVisitor,
+    reset
+  };
+}

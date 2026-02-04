@@ -23,6 +23,7 @@ export type Database = {
           site_id: string
           timestamp: string
           user_id: string | null
+          walk_in_visitor_id: string | null
         }
         Insert: {
           action_type: string
@@ -32,6 +33,7 @@ export type Database = {
           site_id: string
           timestamp?: string
           user_id?: string | null
+          walk_in_visitor_id?: string | null
         }
         Update: {
           action_type?: string
@@ -41,6 +43,7 @@ export type Database = {
           site_id?: string
           timestamp?: string
           user_id?: string | null
+          walk_in_visitor_id?: string | null
         }
         Relationships: [
           {
@@ -55,6 +58,13 @@ export type Database = {
             columns: ["site_id"]
             isOneToOne: false
             referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "access_logs_walk_in_visitor_id_fkey"
+            columns: ["walk_in_visitor_id"]
+            isOneToOne: false
+            referencedRelation: "walk_in_visitors"
             referencedColumns: ["id"]
           },
         ]
@@ -335,6 +345,62 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      walk_in_visitors: {
+        Row: {
+          address: string | null
+          birth_date: string | null
+          created_at: string
+          first_name: string
+          gender: string | null
+          id: string
+          id_card_expiry: string | null
+          id_card_number: string
+          last_name: string
+          nationality: string | null
+          photo_url: string | null
+          scanned_by: string | null
+          site_id: string
+        }
+        Insert: {
+          address?: string | null
+          birth_date?: string | null
+          created_at?: string
+          first_name: string
+          gender?: string | null
+          id?: string
+          id_card_expiry?: string | null
+          id_card_number: string
+          last_name: string
+          nationality?: string | null
+          photo_url?: string | null
+          scanned_by?: string | null
+          site_id: string
+        }
+        Update: {
+          address?: string | null
+          birth_date?: string | null
+          created_at?: string
+          first_name?: string
+          gender?: string | null
+          id?: string
+          id_card_expiry?: string | null
+          id_card_number?: string
+          last_name?: string
+          nationality?: string | null
+          photo_url?: string | null
+          scanned_by?: string | null
+          site_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "walk_in_visitors_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
