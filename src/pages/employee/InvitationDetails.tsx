@@ -11,11 +11,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { QRCodeDisplay } from '@/components/ui/QRCodeDisplay';
 import { supabase } from '@/integrations/supabase/client';
 
-const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-  pending: { label: 'En attente', variant: 'default' },
-  used: { label: 'Utilisée', variant: 'secondary' },
-  expired: { label: 'Expirée', variant: 'outline' },
-  cancelled: { label: 'Annulée', variant: 'destructive' },
+const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; color: string }> = {
+  pending: { label: 'En attente', variant: 'default', color: 'bg-primary/10 text-primary' },
+  used: { label: 'Utilisée', variant: 'secondary', color: 'bg-success/10 text-success' },
+  expired: { label: 'Expirée', variant: 'outline', color: 'bg-muted text-muted-foreground' },
+  cancelled: { label: 'Annulée', variant: 'destructive', color: 'bg-destructive/10 text-destructive' },
 };
 
 export default function InvitationDetails() {
@@ -27,6 +27,7 @@ export default function InvitationDetails() {
     queryFn: async () => {
       if (!id) return null;
 
+      // First fetch the invitation with employee and company data
       const { data, error } = await supabase
         .from('invitations')
         .select(`
@@ -34,19 +35,48 @@ export default function InvitationDetails() {
           employee:employees(
             id,
             user_id,
-            company:companies(
-              id,
-              name,
-              site:sites(id, name, address)
-            ),
-            profile:profiles!employees_user_id_fkey(first_name, last_name, email, phone)
+            company:companies(id, name, site_id)
           )
         `)
         .eq('id', id)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
-      return data;
+      if (!data) return null;
+
+      // Fetch profile separately if employee exists
+      let profile = null;
+      if (data.employee?.user_id) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('first_name, last_name, email, phone')
+          .eq('id', data.employee.user_id)
+          .maybeSingle();
+        profile = profileData;
+      }
+
+      // Fetch site separately if company exists
+      let site = null;
+      if (data.employee?.company?.site_id) {
+        const { data: siteData } = await supabase
+          .from('sites')
+          .select('id, name, address')
+          .eq('id', data.employee.company.site_id)
+          .maybeSingle();
+        site = siteData;
+      }
+
+      return {
+        ...data,
+        employee: data.employee ? {
+          ...data.employee,
+          profile,
+          company: data.employee.company ? {
+            ...data.employee.company,
+            site
+          } : null
+        } : null
+      };
     },
     enabled: !!id,
   });

@@ -33,17 +33,32 @@ export default function AccessLogDetails() {
             employee:employees(
               id,
               user_id,
-              company:companies(id, name),
-              profile:profiles!employees_user_id_fkey(first_name, last_name, email, phone)
+              company:companies(id, name)
             )
           ),
           walk_in_visitor:walk_in_visitors(*)
         `)
         .eq('id', id)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
-      return data;
+      if (!data) return null;
+
+      // Fetch profile separately if invitation has employee
+      let employeeProfile = null;
+      if (data.invitation?.employee?.user_id) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('first_name, last_name, email, phone')
+          .eq('id', data.invitation.employee.user_id)
+          .maybeSingle();
+        employeeProfile = profileData;
+      }
+
+      return {
+        ...data,
+        _employeeProfile: employeeProfile
+      };
     },
     enabled: !!id,
   });
@@ -97,8 +112,8 @@ export default function AccessLogDetails() {
   const site = accessLog.site as any;
   const invitation = accessLog.invitation as any;
   const walkInVisitor = accessLog.walk_in_visitor as any;
-  const employee = invitation?.employee;
-  const employeeProfile = employee?.profile;
+  const employee = invitation?.employee as any;
+  const employeeProfile = (accessLog as any)?._employeeProfile;
   const company = employee?.company;
 
   const isEntry = accessLog.action_type === 'entry';
