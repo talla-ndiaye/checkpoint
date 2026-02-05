@@ -351,6 +351,8 @@ export type Database = {
           address: string | null
           birth_date: string | null
           created_at: string
+          exit_at: string | null
+          exit_validated: boolean | null
           first_name: string
           gender: string | null
           id: string
@@ -359,6 +361,8 @@ export type Database = {
           last_name: string
           nationality: string | null
           photo_url: string | null
+          receipt_code: string | null
+          receipt_qr_code: string | null
           scanned_by: string | null
           site_id: string
         }
@@ -366,6 +370,8 @@ export type Database = {
           address?: string | null
           birth_date?: string | null
           created_at?: string
+          exit_at?: string | null
+          exit_validated?: boolean | null
           first_name: string
           gender?: string | null
           id?: string
@@ -374,6 +380,8 @@ export type Database = {
           last_name: string
           nationality?: string | null
           photo_url?: string | null
+          receipt_code?: string | null
+          receipt_qr_code?: string | null
           scanned_by?: string | null
           site_id: string
         }
@@ -381,6 +389,8 @@ export type Database = {
           address?: string | null
           birth_date?: string | null
           created_at?: string
+          exit_at?: string | null
+          exit_validated?: boolean | null
           first_name?: string
           gender?: string | null
           id?: string
@@ -389,6 +399,8 @@ export type Database = {
           last_name?: string
           nationality?: string | null
           photo_url?: string | null
+          receipt_code?: string | null
+          receipt_qr_code?: string | null
           scanned_by?: string | null
           site_id?: string
         }
@@ -407,6 +419,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_receipt_code: { Args: never; Returns: string }
       generate_unique_code: { Args: never; Returns: string }
       get_company_site_id_for_user: {
         Args: { _user_id: string }

@@ -18,7 +18,9 @@ import {
   Keyboard,
   Camera,
   CreditCard,
+  AlertTriangle,
 } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useQRScanner } from '@/hooks/useQRScanner';
 import { IDCardScanPanel } from '@/components/guardian/IDCardScanPanel';
 import { format } from 'date-fns';
@@ -174,21 +176,28 @@ export default function ScanPage() {
             ) : (
               <>
                 {/* Scan Result */}
-                <Card className={`border-2 ${recorded ? 'border-green-500 bg-green-50 dark:bg-green-950/20' : 'border-primary'}`}>
+                <Card className={`border-2 ${
+                  recorded 
+                    ? 'border-success bg-success/5' 
+                    : lastScan.exitAlreadyValidated 
+                      ? 'border-destructive bg-destructive/5' 
+                      : 'border-primary'
+                }`}>
                   <CardContent className="p-6">
                     <div className="text-center space-y-4">
-                      {recorded ? (
-                        <div className="flex items-center justify-center gap-2 text-green-600">
+                      {lastScan.exitAlreadyValidated ? (
+                        <div className="flex items-center justify-center gap-2 text-destructive">
+                          <AlertTriangle className="h-8 w-8" />
+                          <span className="text-xl font-semibold">Reçu déjà utilisé</span>
+                        </div>
+                      ) : recorded ? (
+                        <div className="flex items-center justify-center gap-2 text-success">
                           <CheckCircle className="h-8 w-8" />
                           <span className="text-xl font-semibold">Accès enregistré</span>
                         </div>
                       ) : (
-                        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${
-                          lastScan.type === 'employee' 
-                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                            : 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'
-                        }`}>
-                          {lastScan.type === 'employee' ? 'Employé' : 'Visiteur'}
+                        <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium bg-secondary text-secondary-foreground`}>
+                          {lastScan.type === 'employee' ? 'Employé' : lastScan.isWalkInExit ? 'Visiteur (Reçu)' : 'Visiteur'}
                         </div>
                       )}
 
@@ -222,6 +231,12 @@ export default function ScanPage() {
                           </div>
                         )}
 
+                        {lastScan.isWalkInExit && !lastScan.visitorInfo && (
+                          <div className="text-sm text-muted-foreground">
+                            Visiteur enregistré par carte d'identité
+                          </div>
+                        )}
+
                         <div className="pt-2">
                           <span className="font-mono text-lg bg-muted px-3 py-1 rounded">
                             {lastScan.code}
@@ -233,27 +248,55 @@ export default function ScanPage() {
                 </Card>
 
                 {/* Action Buttons */}
-                {!recorded ? (
-                  <div className="grid grid-cols-2 gap-4">
+                {lastScan.exitAlreadyValidated ? (
+                  <div className="space-y-3">
+                    <Alert variant="destructive">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription>
+                        Ce reçu a déjà été utilisé pour enregistrer une sortie. Chaque reçu ne peut être utilisé qu'une seule fois.
+                      </AlertDescription>
+                    </Alert>
                     <Button
                       size="lg"
-                      className="h-20 text-lg gap-3 bg-green-600 hover:bg-green-700"
-                      onClick={() => handleAccess('entry')}
-                      disabled={processing}
+                      className="w-full h-16 text-lg"
+                      onClick={resetScan}
                     >
-                      <LogIn className="h-6 w-6" />
-                      Entrée
+                      Nouveau scan
                     </Button>
+                  </div>
+                ) : !recorded ? (
+                  lastScan.isWalkInExit ? (
                     <Button
                       size="lg"
-                      className="h-20 text-lg gap-3 bg-orange-600 hover:bg-orange-700"
+                      className="w-full h-20 text-lg gap-3 bg-warning hover:bg-warning/90 text-warning-foreground"
                       onClick={() => handleAccess('exit')}
                       disabled={processing}
                     >
                       <LogOut className="h-6 w-6" />
-                      Sortie
+                      Valider la sortie
                     </Button>
-                  </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-4">
+                      <Button
+                        size="lg"
+                        className="h-20 text-lg gap-3 bg-success hover:bg-success/90 text-success-foreground"
+                        onClick={() => handleAccess('entry')}
+                        disabled={processing}
+                      >
+                        <LogIn className="h-6 w-6" />
+                        Entrée
+                      </Button>
+                      <Button
+                        size="lg"
+                        className="h-20 text-lg gap-3 bg-warning hover:bg-warning/90 text-warning-foreground"
+                        onClick={() => handleAccess('exit')}
+                        disabled={processing}
+                      >
+                        <LogOut className="h-6 w-6" />
+                        Sortie
+                      </Button>
+                    </div>
+                  )
                 ) : (
                   <Button
                     size="lg"
