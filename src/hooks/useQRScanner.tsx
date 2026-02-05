@@ -4,6 +4,8 @@ import { toast } from 'sonner';
 
 interface ScanResult {
   type: 'employee' | 'visitor';
+  walkInReceiptCode?: string;
+  walkInVisitorId?: string;
   name: string;
   code: string;
   companyName?: string;
@@ -12,6 +14,8 @@ interface ScanResult {
     visitTime: string;
     hostName: string;
   };
+  isWalkInExit?: boolean;
+  exitAlreadyValidated?: boolean;
 }
 
 export function useQRScanner() {
@@ -25,14 +29,16 @@ export function useQRScanner() {
       
       // Try to parse JSON QR code data
       let codeToSearch = rawCode;
-      let parsedType: 'employee' | 'invitation' | null = null;
+      let parsedType: 'employee' | 'invitation' | 'walk_in_receipt' | null = null;
       
       try {
         const parsed = JSON.parse(rawCode);
         console.log('Parsed JSON:', parsed);
         if (parsed.code) {
           codeToSearch = parsed.code;
-          parsedType = parsed.type === 'employee' ? 'employee' : parsed.type === 'invitation' ? 'invitation' : null;
+          parsedType = parsed.type === 'employee' ? 'employee' : 
+                       parsed.type === 'invitation' ? 'invitation' : 
+                       parsed.type === 'walk_in_receipt' ? 'walk_in_receipt' : null;
         }
       } catch {
         // Not JSON, use raw code (manual entry case)
@@ -82,7 +88,46 @@ export function useQRScanner() {
       }
 
       // If we know it's an invitation from QR data, or employee not found
-      if (parsedType === 'invitation' || !parsedType) {
+      if (parsedType === 'invitation' || parsedType === 'walk_in_receipt' || !parsedType) {
+        // First, check for walk-in visitor receipt
+        console.log('Searching walk-in visitor receipts...');
+        const { data: walkInVisitor, error: walkInError } = await supabase
+          .from('walk_in_visitors')
+          .select('id, first_name, last_name, id_card_number, exit_validated, created_at, receipt_code')
+          .eq('receipt_code', codeToSearch)
+          .maybeSingle();
+
+        console.log('Walk-in visitor query result:', { walkInVisitor, walkInError });
+
+        if (walkInError) throw walkInError;
+
+        if (walkInVisitor) {
+          console.log('Walk-in visitor found, exit_validated:', walkInVisitor.exit_validated);
+          
+          if (walkInVisitor.exit_validated) {
+            toast.error('Ce reçu a déjà été utilisé pour une sortie');
+            return {
+              type: 'visitor' as const,
+              name: `${walkInVisitor.first_name} ${walkInVisitor.last_name}`,
+              code: walkInVisitor.receipt_code || codeToSearch,
+              walkInReceiptCode: walkInVisitor.receipt_code || undefined,
+              walkInVisitorId: walkInVisitor.id,
+              isWalkInExit: true,
+              exitAlreadyValidated: true
+            };
+          }
+
+          return {
+            type: 'visitor' as const,
+            name: `${walkInVisitor.first_name} ${walkInVisitor.last_name}`,
+            code: walkInVisitor.receipt_code || codeToSearch,
+            walkInReceiptCode: walkInVisitor.receipt_code || undefined,
+            walkInVisitorId: walkInVisitor.id,
+            isWalkInExit: true,
+            exitAlreadyValidated: false
+          };
+        }
+
         console.log('Searching invitations...');
         const { data: invitation, error: invError } = await supabase
           .from('invitations')
@@ -199,6 +244,26 @@ export function useQRScanner() {
         }
       }
 
+      // Handle walk-in visitor exit
+      let walkInVisitorId: string | null = null;
+      if (scanResult.walkInVisitorId && actionType === 'exit') {
+        walkInVisitorId = scanResult.walkInVisitorId;
+        
+        // Mark walk-in visitor exit as validated
+        const { error: updateError } = await supabase
+          .from('walk_in_visitors')
+          .update({ 
+            exit_validated: true,
+            exit_at: new Date().toISOString()
+          })
+          .eq('id', walkInVisitorId);
+
+        if (updateError) {
+          console.error('Error updating walk-in visitor exit:', updateError);
+          throw new Error('Erreur lors de la validation de la sortie');
+        }
+      }
+
       // Record access log
       const { error } = await supabase
         .from('access_logs')
@@ -207,7 +272,8 @@ export function useQRScanner() {
           scanned_by: user.id,
           action_type: actionType,
           user_id: userId,
-          invitation_id: invitationId
+          invitation_id: invitationId,
+          walk_in_visitor_id: walkInVisitorId
         });
 
       if (error) throw error;

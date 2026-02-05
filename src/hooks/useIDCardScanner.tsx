@@ -18,6 +18,9 @@ export interface WalkInVisitorResult {
   firstName: string;
   lastName: string;
   idCardNumber: string;
+  receiptCode: string;
+  qrCodeData: string;
+  qrCodeDataUrl: string;
 }
 
 export function useIDCardScanner() {
@@ -78,6 +81,20 @@ export function useIDCardScanner() {
       }
 
       // Create walk-in visitor record
+      // Generate receipt code
+      const { data: receiptCodeData, error: receiptCodeError } = await supabase.rpc('generate_receipt_code');
+      if (receiptCodeError) {
+        console.error('Error generating receipt code:', receiptCodeError);
+        throw new Error('Erreur lors de la génération du code de reçu');
+      }
+      
+      const receiptCode = receiptCodeData as string;
+      const qrCodeData = JSON.stringify({
+        type: 'walk_in_receipt',
+        code: receiptCode,
+        timestamp: Date.now()
+      });
+
       const { data: visitor, error: visitorError } = await supabase
         .from('walk_in_visitors')
         .insert({
@@ -90,7 +107,9 @@ export function useIDCardScanner() {
           nationality: idCardData.nationality || 'SEN',
           address: idCardData.address,
           id_card_expiry: idCardData.expiryDate,
-          scanned_by: user.id
+          scanned_by: user.id,
+          receipt_code: receiptCode,
+          receipt_qr_code: qrCodeData
         })
         .select('id, first_name, last_name, id_card_number')
         .single();
@@ -116,12 +135,23 @@ export function useIDCardScanner() {
       }
 
       toast.success(`${actionType === 'entry' ? 'Entrée' : 'Sortie'} enregistrée pour ${visitor.first_name} ${visitor.last_name}`);
-      
+
+      // Generate QR code data URL for display/printing
+      const QRCodeLib = await import('qrcode');
+      const qrCodeDataUrl = await QRCodeLib.default.toDataURL(qrCodeData, {
+        width: 200,
+        margin: 2,
+        errorCorrectionLevel: 'M'
+      });
+
       return {
         id: visitor.id,
         firstName: visitor.first_name,
         lastName: visitor.last_name,
-        idCardNumber: visitor.id_card_number
+        idCardNumber: visitor.id_card_number,
+        receiptCode,
+        qrCodeData,
+        qrCodeDataUrl
       };
     } catch (error) {
       console.error('Error registering walk-in visitor:', error);
