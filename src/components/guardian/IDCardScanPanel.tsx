@@ -117,9 +117,21 @@ export function IDCardScanPanel({ onComplete }: IDCardScanPanelProps) {
           });
           if (videoRef.current) {
             videoRef.current.srcObject = simpleStream;
-            videoRef.current.onloadedmetadata = () => {
-              videoRef.current?.play().catch(e => console.error('Error playing video:', e));
+            const playVideo = async () => {
+              try {
+                await videoRef.current?.play();
+              } catch (err) {
+                console.error('Error playing video:', err);
+              }
             };
+            
+            if (videoRef.current.readyState >= 2) {
+              await playVideo();
+            } else {
+              videoRef.current.onloadedmetadata = () => {
+                playVideo();
+              };
+            }
             setStream(simpleStream);
             setCameraActive(true);
             setCameraPermission('granted');
