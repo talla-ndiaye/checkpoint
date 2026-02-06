@@ -160,10 +160,11 @@ export default function AccessHistory() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Date & Heure</TableHead>
+             <TableHead>Date & Heure</TableHead>
                 <TableHead>Utilisateur</TableHead>
                 <TableHead>Site</TableHead>
                 <TableHead>Action</TableHead>
+                <TableHead>Statut sortie</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
