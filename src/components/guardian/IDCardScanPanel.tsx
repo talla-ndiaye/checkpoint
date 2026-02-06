@@ -76,11 +76,23 @@ export function IDCardScanPanel({ onComplete }: IDCardScanPanelProps) {
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
         // Ensure video plays
-        videoRef.current.onloadedmetadata = () => {
-          videoRef.current?.play().catch(err => {
+        const playVideo = async () => {
+          try {
+            await videoRef.current?.play();
+          } catch (err) {
             console.error('Error playing video:', err);
-          });
+          }
         };
+        
+        if (videoRef.current.readyState >= 2) {
+          // Metadata already loaded
+          await playVideo();
+        } else {
+          // Wait for metadata to load
+          videoRef.current.onloadedmetadata = () => {
+            playVideo();
+          };
+        }
         setStream(mediaStream);
         setCameraActive(true);
         setCameraPermission('granted');
