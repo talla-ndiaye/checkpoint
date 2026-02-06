@@ -62,6 +62,30 @@ export default function AccessHistory() {
     return 'Inconnu';
   };
 
+  const getExitStatusBadge = (log: any) => {
+    // Only show exit status for walk-in visitors
+    if (!log.walk_in_visitor) return null;
+    
+    // Only show for exit actions
+    if (log.action_type !== 'exit') return null;
+
+    if (log.walk_in_visitor.exit_validated) {
+      return (
+        <Badge className="bg-success/10 text-success border-success/20">
+          <CheckCircle className="h-3 w-3 mr-1" />
+          Sortie validée
+        </Badge>
+      );
+    }
+
+    return (
+      <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20">
+        <Clock className="h-3 w-3 mr-1" />
+        Sortie en attente
+      </Badge>
+    );
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
