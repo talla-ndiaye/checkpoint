@@ -183,7 +183,7 @@ export default function AccessHistory() {
                   </TableCell>
                 </TableRow>
               ) : (
-                accessLogs?.map((log) => (
+               accessLogs?.map((log) => (
                   <TableRow 
                     key={log.id} 
                     className="cursor-pointer hover:bg-muted/50"
@@ -200,6 +200,7 @@ export default function AccessHistory() {
                     <TableCell>{getUserName(log)}</TableCell>
                     <TableCell>{log.site?.name || 'N/A'}</TableCell>
                     <TableCell>{getActionBadge(log.action_type)}</TableCell>
+                    <TableCell>{getExitStatusBadge(log) || '-'}</TableCell>
                   </TableRow>
                 ))
               )}
