@@ -10,10 +10,17 @@ export interface AccessLog {
   user_id: string | null;
   invitation_id: string | null;
   scanned_by: string | null;
+  walk_in_visitor_id: string | null;
   site?: { name: string };
   user_profile?: { first_name: string; last_name: string } | null;
   invitation?: { visitor_name: string } | null;
-  walk_in_visitor?: { first_name: string; last_name: string; id_card_number: string } | null;
+  walk_in_visitor?: { 
+    first_name: string; 
+    last_name: string; 
+    id_card_number: string;
+    exit_validated?: boolean;
+    exit_at?: string | null;
+  } | null;
 }
 
 interface UseAccessLogsOptions {
@@ -35,7 +42,7 @@ export function useAccessLogs(options: UseAccessLogsOptions = {}) {
           *,
           site:sites(name),
           invitation:invitations(visitor_name),
-          walk_in_visitor:walk_in_visitors(first_name, last_name, id_card_number)
+          walk_in_visitor:walk_in_visitors(first_name, last_name, id_card_number, exit_validated, exit_at)
         `)
         .order('timestamp', { ascending: false })
         .limit(100);
@@ -90,7 +97,7 @@ export function useRecentActivity(limit = 5) {
           *,
           site:sites(name),
           invitation:invitations(visitor_name),
-          walk_in_visitor:walk_in_visitors(first_name, last_name, id_card_number)
+          walk_in_visitor:walk_in_visitors(first_name, last_name, id_card_number, exit_validated, exit_at)
         `)
         .order('timestamp', { ascending: false })
         .limit(limit);

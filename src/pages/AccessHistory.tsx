@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { ArrowUpRight, ArrowDownLeft, Calendar, Filter } from 'lucide-react';
+import { ArrowUpRight, ArrowDownLeft, Calendar, Filter, CheckCircle, Clock } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/hooks/useAuth';
 import { useAccessLogs } from '@/hooks/useAccessLogs';
@@ -60,6 +60,30 @@ export default function AccessHistory() {
       return `${log.walk_in_visitor.first_name} ${log.walk_in_visitor.last_name} (CNI)`;
     }
     return 'Inconnu';
+  };
+
+  const getExitStatusBadge = (log: any) => {
+    // Only show exit status for walk-in visitors
+    if (!log.walk_in_visitor) return null;
+    
+    // Only show for exit actions
+    if (log.action_type !== 'exit') return null;
+
+    if (log.walk_in_visitor.exit_validated) {
+      return (
+        <Badge className="bg-success/10 text-success border-success/20">
+          <CheckCircle className="h-3 w-3 mr-1" />
+          Sortie validée
+        </Badge>
+      );
+    }
+
+    return (
+      <Badge className="bg-primary/10 text-primary border-primary/20">
+        <Clock className="h-3 w-3 mr-1" />
+        Sortie en attente
+      </Badge>
+    );
   };
 
   return (
@@ -136,10 +160,11 @@ export default function AccessHistory() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Date & Heure</TableHead>
+             <TableHead>Date & Heure</TableHead>
                 <TableHead>Utilisateur</TableHead>
                 <TableHead>Site</TableHead>
                 <TableHead>Action</TableHead>
+                <TableHead>Statut sortie</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -158,7 +183,7 @@ export default function AccessHistory() {
                   </TableCell>
                 </TableRow>
               ) : (
-                accessLogs?.map((log) => (
+               accessLogs?.map((log) => (
                   <TableRow 
                     key={log.id} 
                     className="cursor-pointer hover:bg-muted/50"
@@ -175,6 +200,7 @@ export default function AccessHistory() {
                     <TableCell>{getUserName(log)}</TableCell>
                     <TableCell>{log.site?.name || 'N/A'}</TableCell>
                     <TableCell>{getActionBadge(log.action_type)}</TableCell>
+                    <TableCell>{getExitStatusBadge(log) || '-'}</TableCell>
                   </TableRow>
                 ))
               )}
