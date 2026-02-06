@@ -79,7 +79,7 @@ export default function AccessHistory() {
     }
 
     return (
-      <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20">
+      <Badge className="bg-primary/10 text-primary border-primary/20">
         <Clock className="h-3 w-3 mr-1" />
         Sortie en attente
       </Badge>
