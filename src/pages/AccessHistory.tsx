@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { ArrowUpRight, ArrowDownLeft, Calendar, Filter } from 'lucide-react';
+import { ArrowUpRight, ArrowDownLeft, Calendar, Filter, CheckCircle, Clock } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/hooks/useAuth';
 import { useAccessLogs } from '@/hooks/useAccessLogs';
