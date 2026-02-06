@@ -97,7 +97,7 @@ export function useRecentActivity(limit = 5) {
           *,
           site:sites(name),
           invitation:invitations(visitor_name),
-          walk_in_visitor:walk_in_visitors(first_name, last_name, id_card_number)
+          walk_in_visitor:walk_in_visitors(first_name, last_name, id_card_number, exit_validated, exit_at)
         `)
         .order('timestamp', { ascending: false })
         .limit(limit);
