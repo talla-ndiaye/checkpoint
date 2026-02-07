@@ -14,6 +14,7 @@ import {
   LayoutDashboard,
   X,
   BarChart3,
+  CreditCard,
 } from 'lucide-react';
 import { UserRole, ROLE_LABELS } from '@/lib/types';
 import { RoleBadge } from '@/components/ui/RoleBadge';
@@ -49,6 +50,8 @@ const menuItemsByRole: Record<UserRole, { label: string; icon: React.ElementType
   guardian: [
     { label: 'Tableau de bord', icon: LayoutDashboard, path: '/dashboard' },
     { label: 'Scanner QR', icon: QrCode, path: '/scan' },
+    { label: 'Scanner CNI', icon: CreditCard, path: '/scan/id-card' },
+    { label: 'Sorties groupées', icon: LogOut, path: '/scan/bulk-exit' },
     { label: 'Historique', icon: History, path: '/access-history' },
   ],
   company_admin: [

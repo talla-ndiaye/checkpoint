@@ -56,97 +56,82 @@ export function IDCardScanPanel({ onComplete }: IDCardScanPanelProps) {
 
   const startCamera = async () => {
     setCameraError(null);
-    try {
-      // Check if mediaDevices API is available
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        setCameraError('Votre navigateur ne supporte pas l\'accès à la caméra. Essayez avec Chrome, Firefox ou Safari.');
-        return;
-      }
+    setCameraActive(true); // Show video element first
+  };
 
-      // Try to get the camera with environment facing mode first (back camera on mobile)
-      const mediaStream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
-          facingMode: { ideal: 'environment' }, 
-          width: { ideal: 1280 }, 
-          height: { ideal: 720 } 
-        },
-        audio: false
-      });
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-        // Ensure video plays
-        const playVideo = async () => {
-          try {
-            await videoRef.current?.play();
-          } catch (err) {
-            console.error('Error playing video:', err);
-          }
-        };
-        
-        if (videoRef.current.readyState >= 2) {
-          // Metadata already loaded
-          await playVideo();
-        } else {
-          // Wait for metadata to load
-          videoRef.current.onloadedmetadata = () => {
-            playVideo();
-          };
+  // Start the stream once cameraActive is true and videoRef is mounted
+  useEffect(() => {
+    if (!cameraActive || !videoRef.current) return;
+
+    let cancelled = false;
+    const initStream = async () => {
+      try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          setCameraError('Votre navigateur ne supporte pas l\'accès à la caméra. Essayez avec Chrome, Firefox ou Safari.');
+          setCameraActive(false);
+          return;
         }
-        setStream(mediaStream);
-        setCameraActive(true);
-        setCameraPermission('granted');
-      }
-    } catch (error) {
-      console.error('Error accessing camera:', error);
-      const err = error as Error;
-      
-      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        setCameraError('L\'accès à la caméra a été refusé. Veuillez autoriser l\'accès dans les paramètres de votre navigateur.');
-        setCameraPermission('denied');
-      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-        setCameraError('Aucune caméra détectée sur cet appareil. Utilisez l\'option "Importer".');
-      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
-        setCameraError('La caméra est utilisée par une autre application. Fermez les autres applications et réessayez.');
-      } else if (err.name === 'OverconstrainedError') {
-        // Try again with simpler constraints
+
+        let mediaStream: MediaStream;
         try {
-          const simpleStream = await navigator.mediaDevices.getUserMedia({ 
-            video: true,
+          mediaStream = await navigator.mediaDevices.getUserMedia({ 
+            video: { 
+              facingMode: { ideal: 'environment' }, 
+              width: { ideal: 1280 }, 
+              height: { ideal: 720 } 
+            },
             audio: false
           });
-          if (videoRef.current) {
-            videoRef.current.srcObject = simpleStream;
-            const playVideo = async () => {
-              try {
-                await videoRef.current?.play();
-              } catch (err) {
-                console.error('Error playing video:', err);
-              }
-            };
-            
-            if (videoRef.current.readyState >= 2) {
-              await playVideo();
-            } else {
-              videoRef.current.onloadedmetadata = () => {
-                playVideo();
-              };
-            }
-            setStream(simpleStream);
-            setCameraActive(true);
-            setCameraPermission('granted');
-          }
-          return;
-        } catch {
-          setCameraError('Impossible d\'accéder à la caméra. Essayez avec un autre navigateur.');
+        } catch (firstError) {
+          // Fallback to basic video
+          console.warn('Falling back to basic video constraints:', firstError);
+          mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
         }
-      } else if (err.name === 'SecurityError') {
-        setCameraError('L\'accès à la caméra nécessite une connexion HTTPS sécurisée.');
-      } else {
-        setCameraError(`Erreur d'accès à la caméra: ${err.message || 'Erreur inconnue'}`);
+
+        if (cancelled) {
+          mediaStream.getTracks().forEach(t => t.stop());
+          return;
+        }
+
+        if (videoRef.current) {
+          videoRef.current.srcObject = mediaStream;
+          try {
+            await videoRef.current.play();
+          } catch (playErr) {
+            console.warn('Auto-play failed, user interaction may be needed:', playErr);
+          }
+          setStream(mediaStream);
+          setCameraPermission('granted');
+        }
+      } catch (error) {
+        if (cancelled) return;
+        console.error('Error accessing camera:', error);
+        const err = error as Error;
+        
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          setCameraError('L\'accès à la caméra a été refusé. Veuillez autoriser l\'accès dans les paramètres de votre navigateur.');
+          setCameraPermission('denied');
+        } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+          setCameraError('Aucune caméra détectée sur cet appareil. Utilisez l\'option "Importer".');
+        } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+          setCameraError('La caméra est utilisée par une autre application. Fermez les autres applications et réessayez.');
+        } else if (err.name === 'SecurityError') {
+          setCameraError('L\'accès à la caméra nécessite une connexion HTTPS sécurisée.');
+        } else {
+          setCameraError(`Erreur d'accès à la caméra: ${err.message || 'Erreur inconnue'}`);
+        }
+        setCameraActive(false);
       }
-    }
-  };
+    };
+
+    initStream();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [cameraActive]);
+
+
 
   const stopCamera = () => {
     if (stream) {

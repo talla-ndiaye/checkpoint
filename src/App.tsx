@@ -21,6 +21,8 @@ import AccessHistory from "./pages/AccessHistory";
 import AccessLogDetails from "./pages/AccessLogDetails";
 import Reports from "./pages/Reports";
 import ScanPage from "./pages/guardian/ScanPage";
+import IDCardScanPage from "./pages/guardian/IDCardScanPage";
+import BulkExitPage from "./pages/guardian/BulkExitPage";
 import Analytics from "./pages/Analytics";
 import PublicInvitation from "./pages/public/PublicInvitation";
 import NotFound from "./pages/NotFound";
@@ -53,6 +55,8 @@ const App = () => (
             <Route path="/access-history/:id" element={<AccessLogDetails />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/scan" element={<ScanPage />} />
+            <Route path="/scan/id-card" element={<IDCardScanPage />} />
+            <Route path="/scan/bulk-exit" element={<BulkExitPage />} />
             <Route path="/analytics" element={<Analytics />} />
             {/* Public routes (no auth required) */}
             <Route path="/i/:code" element={<PublicInvitation />} />
