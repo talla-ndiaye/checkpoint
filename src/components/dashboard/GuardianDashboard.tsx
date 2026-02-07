@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { QrCode, LogIn, LogOut, Clock } from 'lucide-react';
 import { StatCard } from './StatCard';
+import { WalkInStatsWidget } from './WalkInStatsWidget';
 import { useGuardianStats } from '@/hooks/useRoleStats';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
@@ -136,6 +137,9 @@ export function GuardianDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Walk-in Stats Widget */}
+      <WalkInStatsWidget />
     </div>
   );
 }

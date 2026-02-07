@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { useEffect } from 'react';
 
 export default function AccessHistory() {
@@ -19,6 +20,7 @@ export default function AccessHistory() {
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [actionType, setActionType] = useState<'entry' | 'exit' | 'all'>('all');
+  const [showPendingExitsOnly, setShowPendingExitsOnly] = useState(false);
 
   const { data: accessLogs, isLoading } = useAccessLogs({
     startDate: startDate ? new Date(startDate) : undefined,
@@ -140,18 +142,29 @@ export default function AccessHistory() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-end">
+            <div className="flex items-end gap-2">
               <Button
                 variant="outline"
                 onClick={() => {
                   setStartDate('');
                   setEndDate('');
                   setActionType('all');
+                  setShowPendingExitsOnly(false);
                 }}
               >
                 Réinitialiser
               </Button>
             </div>
+          </div>
+          <div className="flex items-center gap-3 mt-4 pt-4 border-t border-border">
+            <Switch
+              checked={showPendingExitsOnly}
+              onCheckedChange={setShowPendingExitsOnly}
+              id="pending-exits"
+            />
+            <label htmlFor="pending-exits" className="text-sm font-medium cursor-pointer">
+              Afficher uniquement les visiteurs CNI avec sortie en attente
+            </label>
           </div>
         </div>
 
@@ -183,7 +196,12 @@ export default function AccessHistory() {
                   </TableCell>
                 </TableRow>
               ) : (
-               accessLogs?.map((log) => (
+               accessLogs
+                ?.filter(log => {
+                  if (!showPendingExitsOnly) return true;
+                  return log.walk_in_visitor && !log.walk_in_visitor.exit_validated && log.action_type === 'entry';
+                })
+                .map((log) => (
                   <TableRow 
                     key={log.id} 
                     className="cursor-pointer hover:bg-muted/50"
