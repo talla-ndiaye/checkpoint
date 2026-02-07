@@ -23,6 +23,7 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useQRScanner } from '@/hooks/useQRScanner';
 import { IDCardScanPanel } from '@/components/guardian/IDCardScanPanel';
+import { BulkExitValidation } from '@/components/guardian/BulkExitValidation';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -30,7 +31,7 @@ export default function ScanPage() {
   const { lastScan, setLastScan, validateCode, recordAccess } = useQRScanner();
   const [manualCode, setManualCode] = useState('');
   const [inputMode, setInputMode] = useState<'camera' | 'manual'>('camera');
-  const [scanType, setScanType] = useState<'qr' | 'id'>('qr');
+  const [scanType, setScanType] = useState<'qr' | 'id' | 'bulk'>('qr');
   const [processing, setProcessing] = useState(false);
   const [recorded, setRecorded] = useState(false);
 
@@ -88,15 +89,19 @@ export default function ScanPage() {
         </div>
 
         {/* Scan Type Tabs */}
-        <Tabs value={scanType} onValueChange={(v) => setScanType(v as 'qr' | 'id')} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+        <Tabs value={scanType} onValueChange={(v) => setScanType(v as 'qr' | 'id' | 'bulk')} className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="qr" className="gap-2">
               <QrCode className="h-4 w-4" />
-              QR Code / Code
+              QR / Code
             </TabsTrigger>
             <TabsTrigger value="id" className="gap-2">
               <CreditCard className="h-4 w-4" />
-              Carte d'identité
+              CNI
+            </TabsTrigger>
+            <TabsTrigger value="bulk" className="gap-2">
+              <LogOut className="h-4 w-4" />
+              Sorties groupées
             </TabsTrigger>
           </TabsList>
 
@@ -312,6 +317,10 @@ export default function ScanPage() {
 
           <TabsContent value="id" className="mt-4">
             <IDCardScanPanel onComplete={() => setScanType('qr')} />
+          </TabsContent>
+
+          <TabsContent value="bulk" className="mt-4">
+            <BulkExitValidation />
           </TabsContent>
         </Tabs>
       </div>
