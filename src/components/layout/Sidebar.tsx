@@ -19,6 +19,8 @@ import {
 import { UserRole, ROLE_LABELS } from '@/lib/types';
 import { RoleBadge } from '@/components/ui/RoleBadge';
 import { Button } from '@/components/ui/button';
+import { useTranslation } from 'react-i18next';
+import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher';
 
 interface SidebarProps {
   userRole: UserRole;
@@ -28,49 +30,50 @@ interface SidebarProps {
   onClose?: () => void;
 }
 
-const menuItemsByRole: Record<UserRole, { label: string; icon: React.ElementType; path: string }[]> = {
+const getMenuItemsByRole = (t: any): Record<UserRole, { label: string; icon: React.ElementType; path: string }[]> => ({
   super_admin: [
-    { label: 'Tableau de bord', icon: LayoutDashboard, path: '/dashboard' },
-    { label: 'Sites', icon: Building2, path: '/admin/sites' },
-    { label: 'Gestionnaires', icon: Users, path: '/admin/managers' },
-    { label: 'Historique', icon: History, path: '/access-history' },
-    { label: 'Analytiques', icon: BarChart3, path: '/analytics' },
-    { label: 'Rapports', icon: FileBarChart, path: '/reports' },
-    { label: 'Paramètres', icon: Settings, path: '/admin/settings' },
+    { label: t('common.dashboard'), icon: LayoutDashboard, path: '/dashboard' },
+    { label: t('common.sites'), icon: Building2, path: '/admin/sites' },
+    { label: t('common.managers'), icon: Users, path: '/admin/managers' },
+    { label: t('common.history'), icon: History, path: '/access-history' },
+    { label: t('common.analytics'), icon: BarChart3, path: '/analytics' },
+    { label: t('common.reports'), icon: FileBarChart, path: '/reports' },
+    { label: t('common.settings'), icon: Settings, path: '/admin/settings' },
   ],
   manager: [
-    { label: 'Tableau de bord', icon: LayoutDashboard, path: '/dashboard' },
-    { label: 'Gardiens', icon: Shield, path: '/manager/guardians' },
-    { label: 'Entreprises', icon: Briefcase, path: '/manager/companies' },
-    { label: 'Admins Entreprises', icon: UserCircle, path: '/manager/company-admins' },
-    { label: 'Historique', icon: History, path: '/access-history' },
-    { label: 'Analytiques', icon: BarChart3, path: '/analytics' },
-    { label: 'Rapports', icon: FileBarChart, path: '/reports' },
+    { label: t('common.dashboard'), icon: LayoutDashboard, path: '/dashboard' },
+    { label: t('common.guardians'), icon: Shield, path: '/manager/guardians' },
+    { label: t('common.companies'), icon: Briefcase, path: '/manager/companies' },
+    { label: t('common.company_admins'), icon: UserCircle, path: '/manager/company-admins' },
+    { label: t('common.history'), icon: History, path: '/access-history' },
+    { label: t('common.analytics'), icon: BarChart3, path: '/analytics' },
+    { label: t('common.reports'), icon: FileBarChart, path: '/reports' },
   ],
   guardian: [
-    { label: 'Tableau de bord', icon: LayoutDashboard, path: '/dashboard' },
-    { label: 'Scanner QR', icon: QrCode, path: '/scan' },
-    { label: 'Scanner CNI', icon: CreditCard, path: '/scan/id-card' },
-    { label: 'Sorties groupées', icon: LogOut, path: '/scan/bulk-exit' },
-    { label: 'Historique', icon: History, path: '/access-history' },
+    { label: t('common.dashboard'), icon: LayoutDashboard, path: '/dashboard' },
+    { label: t('common.scan_qr'), icon: QrCode, path: '/scan' },
+    { label: t('common.scan_id'), icon: CreditCard, path: '/scan/id-card' },
+    { label: t('common.bulk_exit'), icon: LogOut, path: '/scan/bulk-exit' },
+    { label: t('common.history'), icon: History, path: '/access-history' },
   ],
   company_admin: [
-    { label: 'Tableau de bord', icon: LayoutDashboard, path: '/dashboard' },
-    { label: 'Employés', icon: Users, path: '/employees' },
-    { label: 'Historique', icon: History, path: '/access-history' },
-    { label: 'Rapports', icon: FileBarChart, path: '/reports' },
+    { label: t('common.dashboard'), icon: LayoutDashboard, path: '/dashboard' },
+    { label: t('common.employees'), icon: Users, path: '/employees' },
+    { label: t('common.history'), icon: History, path: '/access-history' },
+    { label: t('common.reports'), icon: FileBarChart, path: '/reports' },
   ],
   employee: [
-    { label: 'Tableau de bord', icon: LayoutDashboard, path: '/dashboard' },
-    { label: 'Mon QR Code', icon: QrCode, path: '/my-qr' },
-    { label: 'Invitations', icon: CalendarPlus, path: '/invitations' },
-    { label: 'Historique', icon: History, path: '/access-history' },
+    { label: t('common.dashboard'), icon: LayoutDashboard, path: '/dashboard' },
+    { label: t('common.my_qr'), icon: QrCode, path: '/my-qr' },
+    { label: t('common.invitations'), icon: CalendarPlus, path: '/invitations' },
+    { label: t('common.history'), icon: History, path: '/access-history' },
   ],
-};
+});
 
 export function Sidebar({ userRole, userName, onLogout, isOpen = true, onClose }: SidebarProps) {
+  const { t } = useTranslation();
   const location = useLocation();
-  const menuItems = menuItemsByRole[userRole];
+  const menuItems = getMenuItemsByRole(t)[userRole];
 
   const handleNavClick = () => {
     if (onClose) onClose();
@@ -88,9 +91,8 @@ export function Sidebar({ userRole, userName, onLogout, isOpen = true, onClose }
 
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 z-50 h-screen w-64 bg-sidebar border-r border-sidebar-border flex flex-col transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`fixed left-0 top-0 z-50 h-screen w-64 bg-sidebar border-r border-sidebar-border flex flex-col transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
       >
         {/* Logo */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-sidebar-border">
@@ -100,7 +102,7 @@ export function Sidebar({ userRole, userName, onLogout, isOpen = true, onClose }
             </div>
             <div>
               <h1 className="font-bold text-lg text-sidebar-foreground">SecureAccess</h1>
-              <p className="text-xs text-sidebar-foreground/60">Gestion des accès</p>
+              <p className="text-xs text-sidebar-foreground/60">{t('common.access_management')}</p>
             </div>
           </div>
           <Button
@@ -144,13 +146,14 @@ export function Sidebar({ userRole, userName, onLogout, isOpen = true, onClose }
               <p className="text-sm font-medium text-sidebar-foreground truncate">{userName}</p>
               <RoleBadge role={userRole} size="sm" />
             </div>
+            <LanguageSwitcher />
           </div>
           <button
             onClick={onLogout}
             className="w-full flex items-center gap-2 px-4 py-2 rounded-lg text-sidebar-foreground/70 hover:bg-destructive/10 hover:text-destructive transition-colors"
           >
             <LogOut className="h-4 w-4" />
-            <span className="text-sm font-medium">Déconnexion</span>
+            <span className="text-sm font-medium">{t('common.logout')}</span>
           </button>
         </div>
       </aside>

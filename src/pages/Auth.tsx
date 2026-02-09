@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Shield, Mail, Lock, Eye, EyeOff, Loader2, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { useTranslation } from 'react-i18next';
 
 export default function Auth() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, signIn, signUp } = useAuth();
@@ -34,23 +36,23 @@ export default function Auth() {
         const { error } = await signIn(email, password);
         if (error) throw error;
         toast({
-          title: "Connexion réussie",
-          description: "Bienvenue sur SecureAccess",
+          title: t('auth.login_success'),
+          description: t('auth.welcome_msg'),
         });
         navigate('/dashboard');
       } else {
         const { error } = await signUp(email, password, firstName, lastName);
         if (error) throw error;
         toast({
-          title: "Compte créé",
-          description: "Votre compte a été créé avec succès",
+          title: t('auth.account_created'),
+          description: t('auth.account_created_desc'),
         });
         navigate('/dashboard');
       }
     } catch (error: any) {
       toast({
-        title: "Erreur",
-        description: error.message || "Une erreur est survenue",
+        title: t('auth.error'),
+        description: error.message || t('common.error'),
         variant: "destructive",
       });
     } finally {
@@ -61,37 +63,59 @@ export default function Auth() {
   return (
     <div className="min-h-screen flex">
       {/* Left Panel - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary via-primary to-accent relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48Y2lyY2xlIGN4PSIzMCIgY3k9IjMwIiByPSIyIi8+PC9nPjwvZz48L3N2Zz4=')] opacity-30"></div>
-        <div className="relative z-10 flex flex-col justify-center items-center w-full p-12 text-primary-foreground">
-          <div className="max-w-md text-center">
-            <div className="h-20 w-20 rounded-2xl bg-primary-foreground/20 backdrop-blur-sm flex items-center justify-center mb-8 mx-auto animate-pulse-glow">
-              <Shield className="h-10 w-10" />
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#0f172a] relative overflow-hidden">
+        {/* Animated background blobs */}
+        <div className="absolute top-[-20%] right-[-10%] w-[60%] h-[60%] bg-primary/20 rounded-full blur-[120px] animate-pulse-glow" />
+        <div className="absolute bottom-[-10%] left-[-20%] w-[50%] h-[50%] bg-accent/20 rounded-full blur-[100px]" style={{ animationDelay: '2s' }} />
+
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-20"></div>
+
+        <div className="relative z-10 flex flex-col justify-between items-start w-full p-16 text-primary-foreground h-full">
+          <div>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-md mb-8">
+              <Shield className="h-4 w-4 text-accent" />
+              <span className="text-sm font-semibold tracking-wider uppercase">{t('common.access_management')}</span>
             </div>
-            <h1 className="text-4xl font-bold mb-4 animate-fade-in">SecureAccess</h1>
-            <p className="text-lg opacity-90 animate-fade-in" style={{ animationDelay: '0.1s' }}>
-              Plateforme de gestion des accès nouvelle génération
+            <h1 className="text-6xl font-extrabold mb-6 leading-tight tracking-tight">
+              Secure<span className="text-accent italic">Access</span>
+            </h1>
+            <p className="text-xl text-primary-foreground/70 max-w-lg leading-relaxed animate-fade-in">
+              {t('auth.branding_subtitle')}
             </p>
-            <div className="mt-12 space-y-4 text-left animate-slide-up" style={{ animationDelay: '0.2s' }}>
-              <div className="flex items-center gap-3 p-4 rounded-xl bg-primary-foreground/10 backdrop-blur-sm">
-                <div className="h-8 w-8 rounded-lg bg-primary-foreground/20 flex items-center justify-center">
-                  <Shield className="h-4 w-4" />
-                </div>
-                <span className="font-medium">Gestion multi-sites centralisée</span>
+          </div>
+
+          <div className="space-y-6 w-full max-w-md animate-slide-up" style={{ animationDelay: '0.2s' }}>
+            <div className="group flex items-center gap-4 p-5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md hover:bg-white/10 transition-all duration-300">
+              <div className="h-12 w-12 rounded-xl bg-accent/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Shield className="h-6 w-6 text-accent" />
               </div>
-              <div className="flex items-center gap-3 p-4 rounded-xl bg-primary-foreground/10 backdrop-blur-sm">
-                <div className="h-8 w-8 rounded-lg bg-primary-foreground/20 flex items-center justify-center">
-                  <Shield className="h-4 w-4" />
-                </div>
-                <span className="font-medium">QR Codes sécurisés & invitations</span>
-              </div>
-              <div className="flex items-center gap-3 p-4 rounded-xl bg-primary-foreground/10 backdrop-blur-sm">
-                <div className="h-8 w-8 rounded-lg bg-primary-foreground/20 flex items-center justify-center">
-                  <Shield className="h-4 w-4" />
-                </div>
-                <span className="font-medium">Rapports & historiques en temps réel</span>
+              <div>
+                <h3 className="font-bold text-lg">{t('auth.feature_multisite')}</h3>
+                <p className="text-sm text-primary-foreground/50">Gestion centralisée de tous vos sites.</p>
               </div>
             </div>
+            <div className="group flex items-center gap-4 p-5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md hover:bg-white/10 transition-all duration-300">
+              <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Lock className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg">{t('auth.feature_qrcodes')}</h3>
+                <p className="text-sm text-primary-foreground/50">Accès sécurisé par QR Code unique.</p>
+              </div>
+            </div>
+            <div className="group flex items-center gap-4 p-5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md hover:bg-white/10 transition-all duration-300">
+              <div className="h-12 w-12 rounded-xl bg-success/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <BarChart3 className="h-6 w-6 text-success" />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg">{t('auth.feature_reports')}</h3>
+                <p className="text-sm text-primary-foreground/50">Rapports et analyses en temps réel.</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="text-sm text-primary-foreground/30 font-medium tracking-widest">
+            © 2026 SECUREACCESS TECHNOLOGY
           </div>
         </div>
       </div>
@@ -109,12 +133,12 @@ export default function Auth() {
 
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold mb-2">
-              {isLogin ? 'Connexion' : 'Créer un compte'}
+              {isLogin ? t('auth.login_title') : t('auth.signup_title')}
             </h2>
             <p className="text-muted-foreground">
-              {isLogin 
-                ? 'Accédez à votre tableau de bord' 
-                : 'Rejoignez SecureAccess'}
+              {isLogin
+                ? t('auth.login_desc')
+                : t('auth.signup_desc')}
             </p>
           </div>
 
@@ -122,7 +146,7 @@ export default function Auth() {
             {!isLogin && (
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="firstName">Prénom</Label>
+                  <Label htmlFor="firstName">{t('auth.first_name')}</Label>
                   <Input
                     id="firstName"
                     placeholder="Jean"
@@ -133,7 +157,7 @@ export default function Auth() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lastName">Nom</Label>
+                  <Label htmlFor="lastName">{t('auth.last_name')}</Label>
                   <Input
                     id="lastName"
                     placeholder="Dupont"
@@ -147,7 +171,7 @@ export default function Auth() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t('auth.email')}</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
@@ -163,7 +187,7 @@ export default function Auth() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Mot de passe</Label>
+              <Label htmlFor="password">{t('auth.password')}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
@@ -188,7 +212,7 @@ export default function Auth() {
             {isLogin && (
               <div className="flex justify-end">
                 <button type="button" className="text-sm text-primary hover:underline">
-                  Mot de passe oublié ?
+                  {t('auth.forgot_password')}
                 </button>
               </div>
             )}
@@ -201,25 +225,25 @@ export default function Auth() {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Chargement...
+                  {t('common.loading')}
                 </>
               ) : isLogin ? (
-                'Se connecter'
+                t('auth.login_btn')
               ) : (
-                'Créer le compte'
+                t('auth.signup_btn')
               )}
             </Button>
           </form>
 
           <div className="mt-8 text-center">
             <p className="text-muted-foreground">
-              {isLogin ? "Pas encore de compte ?" : "Déjà un compte ?"}{' '}
+              {isLogin ? t('auth.no_account') : t('auth.have_account')}{' '}
               <button
                 type="button"
                 onClick={() => setIsLogin(!isLogin)}
                 className="text-primary font-medium hover:underline"
               >
-                {isLogin ? "S'inscrire" : 'Se connecter'}
+                {isLogin ? t('auth.signup') : t('auth.login')}
               </button>
             </p>
           </div>

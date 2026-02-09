@@ -24,34 +24,25 @@ export function useQRScanner() {
 
   const validateCode = useCallback(async (rawCode: string): Promise<ScanResult | null> => {
     try {
-      console.log('=== QR Scanner Debug ===');
-      console.log('Raw code received:', rawCode);
-      
       // Try to parse JSON QR code data
       let codeToSearch = rawCode;
       let parsedType: 'employee' | 'invitation' | 'walk_in_receipt' | null = null;
-      
+
       try {
         const parsed = JSON.parse(rawCode);
-        console.log('Parsed JSON:', parsed);
         if (parsed.code) {
           codeToSearch = parsed.code;
-          parsedType = parsed.type === 'employee' ? 'employee' : 
-                       parsed.type === 'invitation' ? 'invitation' : 
-                       parsed.type === 'walk_in_receipt' ? 'walk_in_receipt' : null;
+          parsedType = parsed.type === 'employee' ? 'employee' :
+            parsed.type === 'invitation' ? 'invitation' :
+              parsed.type === 'walk_in_receipt' ? 'walk_in_receipt' : null;
         }
       } catch {
         // Not JSON, use raw code (manual entry case)
         codeToSearch = rawCode.toUpperCase().trim();
-        console.log('Not JSON, using raw code:', codeToSearch);
       }
-
-      console.log('Code to search:', codeToSearch);
-      console.log('Parsed type:', parsedType);
 
       // If we know it's an employee from QR data, search employees only
       if (parsedType === 'employee' || !parsedType) {
-        console.log('Searching employees...');
         const { data: employee, error: empError } = await supabase
           .from('employees')
           .select(`
@@ -63,20 +54,14 @@ export function useQRScanner() {
           .eq('unique_code', codeToSearch)
           .maybeSingle();
 
-        console.log('Employee query result:', { employee, empError });
-
         if (empError) throw empError;
 
         if (employee) {
-          console.log('Employee found, fetching profile and company...');
           // Get profile and company info
           const [profileRes, companyRes] = await Promise.all([
             supabase.from('profiles').select('first_name, last_name').eq('id', employee.user_id).single(),
             supabase.from('companies').select('name').eq('id', employee.company_id).single()
           ]);
-
-          console.log('Profile result:', profileRes);
-          console.log('Company result:', companyRes);
 
           return {
             type: 'employee',
@@ -90,20 +75,16 @@ export function useQRScanner() {
       // If we know it's an invitation from QR data, or employee not found
       if (parsedType === 'invitation' || parsedType === 'walk_in_receipt' || !parsedType) {
         // First, check for walk-in visitor receipt
-        console.log('Searching walk-in visitor receipts...');
         const { data: walkInVisitor, error: walkInError } = await supabase
           .from('walk_in_visitors')
           .select('id, first_name, last_name, id_card_number, exit_validated, created_at, receipt_code')
           .eq('receipt_code', codeToSearch)
           .maybeSingle();
 
-        console.log('Walk-in visitor query result:', { walkInVisitor, walkInError });
-
         if (walkInError) throw walkInError;
 
         if (walkInVisitor) {
-          console.log('Walk-in visitor found, exit_validated:', walkInVisitor.exit_validated);
-          
+
           if (walkInVisitor.exit_validated) {
             toast.error('Ce reçu a déjà été utilisé pour une sortie');
             return {
@@ -128,7 +109,6 @@ export function useQRScanner() {
           };
         }
 
-        console.log('Searching invitations...');
         const { data: invitation, error: invError } = await supabase
           .from('invitations')
           .select(`
@@ -143,12 +123,9 @@ export function useQRScanner() {
           .eq('alpha_code', codeToSearch)
           .maybeSingle();
 
-        console.log('Invitation query result:', { invitation, invError });
-
         if (invError) throw invError;
 
         if (invitation) {
-          console.log('Invitation found, status:', invitation.status);
           if (invitation.status !== 'pending' && invitation.status !== 'approved') {
             toast.error('Cette invitation a déjà été utilisée ou annulée');
             return null;
@@ -161,8 +138,6 @@ export function useQRScanner() {
             .eq('id', invitation.employee_id)
             .single();
 
-          console.log('Employee lookup for host:', { empData, empLookupError });
-
           let hostName = 'Inconnu';
           if (empData) {
             const { data: profile, error: profileError } = await supabase
@@ -170,7 +145,6 @@ export function useQRScanner() {
               .select('first_name, last_name')
               .eq('id', empData.user_id)
               .single();
-            console.log('Profile lookup for host:', { profile, profileError });
             if (profile) {
               hostName = `${profile.first_name} ${profile.last_name}`;
             }
@@ -189,7 +163,6 @@ export function useQRScanner() {
         }
       }
 
-      console.log('No match found for code:', codeToSearch);
       toast.error('Code non reconnu');
       return null;
     } catch (error) {
@@ -248,11 +221,11 @@ export function useQRScanner() {
       let walkInVisitorId: string | null = null;
       if (scanResult.walkInVisitorId && actionType === 'exit') {
         walkInVisitorId = scanResult.walkInVisitorId;
-        
+
         // Mark walk-in visitor exit as validated
         const { error: updateError } = await supabase
           .from('walk_in_visitors')
-          .update({ 
+          .update({
             exit_validated: true,
             exit_at: new Date().toISOString()
           })

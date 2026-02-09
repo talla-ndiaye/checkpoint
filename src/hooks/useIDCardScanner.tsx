@@ -28,13 +28,16 @@ export function useIDCardScanner() {
   const [extractedData, setExtractedData] = useState<IDCardData | null>(null);
   const [processing, setProcessing] = useState(false);
 
-  const extractIDCardData = useCallback(async (imageBase64: string): Promise<IDCardData | null> => {
+  const extractIDCardData = useCallback(async (frontImage: string, backImage: string): Promise<IDCardData | null> => {
     setProcessing(true);
     try {
-      console.log('Sending image to OCR edge function...');
-      
+      console.log('Sending images to OCR edge function...');
+
       const { data, error } = await supabase.functions.invoke('scan-id-card', {
-        body: { imageBase64 }
+        body: {
+          frontImageBase64: frontImage.replace(/^data:image\/\w+;base64,/, ''),
+          backImageBase64: backImage.replace(/^data:image\/\w+;base64,/, '')
+        }
       });
 
       if (error) {
@@ -87,7 +90,7 @@ export function useIDCardScanner() {
         console.error('Error generating receipt code:', receiptCodeError);
         throw new Error('Erreur lors de la génération du code de reçu');
       }
-      
+
       const receiptCode = receiptCodeData as string;
       const qrCodeData = JSON.stringify({
         type: 'walk_in_receipt',

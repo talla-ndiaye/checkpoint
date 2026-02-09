@@ -13,11 +13,15 @@ import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { useRecentActivity } from '@/hooks/useAccessLogs';
 import { useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { fr } from 'date-fns/locale';
+import { fr, enUS } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useTranslation } from 'react-i18next';
 
 export default function Dashboard() {
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+
+  const currentLocale = i18n.language === 'en' ? enUS : fr;
   const { user, loading, userRole } = useAuth();
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
   const { data: recentLogs, isLoading: activityLoading } = useRecentActivity(5);
@@ -32,11 +36,11 @@ export default function Dashboard() {
   const activities = (recentLogs || []).map(log => ({
     id: log.id,
     type: log.action_type as 'entry' | 'exit' | 'invitation',
-    userName: log.user_profile 
+    userName: log.user_profile
       ? `${log.user_profile.first_name} ${log.user_profile.last_name}`
-      : log.invitation?.visitor_name || 'Inconnu',
-    siteName: log.site?.name || 'N/A',
-    timestamp: formatDistanceToNow(new Date(log.timestamp), { addSuffix: false, locale: fr })
+      : log.invitation?.visitor_name || t('common.unknown'),
+    siteName: log.site?.name || t('common.undefined'),
+    timestamp: formatDistanceToNow(new Date(log.timestamp), { addSuffix: false, locale: currentLocale })
   }));
 
   // Render role-specific dashboard
@@ -56,9 +60,9 @@ export default function Dashboard() {
           <div className="space-y-8">
             {/* Header */}
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">Tableau de bord</h1>
+              <h1 className="text-3xl font-bold tracking-tight">{t('dashboard.title')}</h1>
               <p className="text-muted-foreground mt-1">
-                Vue d'ensemble de l'activité et des statistiques
+                {t('dashboard.subtitle')}
               </p>
             </div>
 
@@ -74,24 +78,24 @@ export default function Dashboard() {
               ) : (
                 <>
                   <StatCard
-                    title="Sites actifs"
+                    title={t('dashboard.active_sites')}
                     value={stats?.sitesCount || 0}
                     icon={Building2}
                     variant="primary"
                   />
                   <StatCard
-                    title="Employés"
+                    title={t('dashboard.employees')}
                     value={stats?.usersCount || 0}
                     icon={Users}
                   />
                   <StatCard
-                    title="Accès aujourd'hui"
+                    title={t('dashboard.today_access')}
                     value={stats?.todayAccessCount || 0}
                     icon={Shield}
                     variant="accent"
                   />
                   <StatCard
-                    title="Invitations actives"
+                    title={t('dashboard.active_invitations')}
                     value={stats?.activeInvitationsCount || 0}
                     icon={CalendarPlus}
                     variant="success"
@@ -117,9 +121,9 @@ export default function Dashboard() {
 
             {/* Quick Actions */}
             <div className="glass-card rounded-xl p-6">
-              <h3 className="text-lg font-semibold mb-4">Actions rapides</h3>
+              <h3 className="text-lg font-semibold mb-4">{t('dashboard.quick_actions')}</h3>
               <div className="grid gap-4 md:grid-cols-3">
-                <button 
+                <button
                   onClick={() => navigate('/admin/sites')}
                   className="flex items-center gap-4 p-4 rounded-xl bg-primary/5 border border-primary/20 hover:bg-primary/10 transition-colors text-left group"
                 >
@@ -127,11 +131,11 @@ export default function Dashboard() {
                     <Building2 className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <p className="font-medium">Gérer les sites</p>
-                    <p className="text-sm text-muted-foreground">Voir tous les sites</p>
+                    <p className="font-medium">{t('dashboard.manage_sites')}</p>
+                    <p className="text-sm text-muted-foreground">{t('dashboard.view_all_sites')}</p>
                   </div>
                 </button>
-                <button 
+                <button
                   onClick={() => navigate('/manager/companies')}
                   className="flex items-center gap-4 p-4 rounded-xl bg-accent/5 border border-accent/20 hover:bg-accent/10 transition-colors text-left group"
                 >
@@ -139,11 +143,11 @@ export default function Dashboard() {
                     <Users className="h-5 w-5 text-accent" />
                   </div>
                   <div>
-                    <p className="font-medium">Entreprises</p>
-                    <p className="text-sm text-muted-foreground">Gérer les entreprises</p>
+                    <p className="font-medium">{t('common.companies')}</p>
+                    <p className="text-sm text-muted-foreground">{t('dashboard.manage_companies_desc')}</p>
                   </div>
                 </button>
-                <button 
+                <button
                   onClick={() => navigate('/access-history')}
                   className="flex items-center gap-4 p-4 rounded-xl bg-success/5 border border-success/20 hover:bg-success/10 transition-colors text-left group"
                 >
@@ -151,8 +155,8 @@ export default function Dashboard() {
                     <Shield className="h-5 w-5 text-success" />
                   </div>
                   <div>
-                    <p className="font-medium">Historique</p>
-                    <p className="text-sm text-muted-foreground">Voir les accès</p>
+                    <p className="font-medium">{t('common.history')}</p>
+                    <p className="text-sm text-muted-foreground">{t('dashboard.view_access')}</p>
                   </div>
                 </button>
               </div>

@@ -47,15 +47,15 @@ Deno.serve(async (req) => {
     }
 
     // Get image data from request
-    const { imageBase64 } = await req.json();
-    if (!imageBase64) {
+    const { frontImageBase64, backImageBase64 } = await req.json();
+    if (!frontImageBase64 || !backImageBase64) {
       return new Response(
-        JSON.stringify({ error: 'Image data required' }),
+        JSON.stringify({ error: 'Front and back images are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('Processing ID card image for user:', user.id);
+    console.log('Processing ID card images for user:', user.id);
 
     // Use Lovable AI Gateway with Gemini for OCR
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
@@ -77,28 +77,37 @@ Deno.serve(async (req) => {
             content: [
               {
                 type: 'text',
-                text: `Analyze this identity card image and extract the following information in JSON format. This is a CEDEAO/ECOWAS identity card from Senegal.
+                text: `Analyze these two images (Front and Back) of a Senegal identity card (CEDEAO/ECOWAS) and extract the information.
+                Combine data from both sides. Usually:
+                - Front has Name, First Name, ID Card Number, Birth Date, Gender.
+                - Back usually has Address and Expiry Date.
 
-Extract these fields:
-- firstName: The first name (Prénoms)
-- lastName: The last name (Nom)
-- idCardNumber: The ID card number (N° de la carte d'identité)
-- birthDate: Date of birth in YYYY-MM-DD format (Date de naissance)
-- gender: Gender as M or F (Sexe)
-- nationality: Nationality code, default to "SEN"
-- address: Full address (Adresse du domicile)
-- expiryDate: Expiry date in YYYY-MM-DD format (Date d'expiration)
+                Extract these fields in JSON:
+                - firstName: The first name (Prénoms)
+                - lastName: The last name (Nom)
+                - idCardNumber: The ID card number (N° de la carte d'identité)
+                - birthDate: Date of birth in YYYY-MM-DD format (Date de naissance)
+                - gender: Gender as M or F (Sexe)
+                - nationality: Nationality code, default to "SEN"
+                - address: Full address (Adresse du domicile)
+                - expiryDate: Expiry date in YYYY-MM-DD format (Date d'expiration)
 
-If a field cannot be read clearly, set it to null.
-Respond ONLY with valid JSON, no other text.
+                If a field cannot be read clearly, set it to null.
+                Respond ONLY with valid JSON.
 
-Example response:
-{"firstName":"TALLA","lastName":"NDIAYE","idCardNumber":"1 01 2001092 00073 0","birthDate":"2001-09-20","gender":"M","nationality":"SEN","address":"S/51 HAMO 3 GUEDIAWAYE","expiryDate":"2030-08-25"}`
+                Example response:
+                {"firstName":"TALLA","lastName":"NDIAYE","idCardNumber":"1 01 2001092 00073 0","birthDate":"2001-09-20","gender":"M","nationality":"SEN","address":"S/51 HAMO 3 GUEDIAWAYE","expiryDate":"2030-08-25"}`
               },
               {
                 type: 'image_url',
                 image_url: {
-                  url: `data:image/jpeg;base64,${imageBase64}`
+                  url: `data:image/jpeg;base64,${frontImageBase64}`
+                }
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: `data:image/jpeg;base64,${backImageBase64}`
                 }
               }
             ]

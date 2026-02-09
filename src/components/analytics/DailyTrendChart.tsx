@@ -17,7 +17,12 @@ interface DailyTrendChartProps {
   isLoading?: boolean;
 }
 
+import { useTranslation } from 'react-i18next';
+import { Skeleton } from '@/components/ui/skeleton';
+
 export function DailyTrendChart({ data, isLoading }: DailyTrendChartProps) {
+  const { t } = useTranslation();
+
   const chartData = data.map(item => ({
     ...item,
     name: format(parseISO(item.date), 'dd MMM', { locale: fr }),
@@ -25,76 +30,67 @@ export function DailyTrendChart({ data, isLoading }: DailyTrendChartProps) {
   }));
 
   if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
-            Évolution des accès
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="h-[300px] flex items-center justify-center">
-          <div className="animate-pulse text-muted-foreground">Chargement...</div>
-        </CardContent>
-      </Card>
-    );
+    return <Skeleton className="h-[430px] rounded-2xl" />;
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <TrendingUp className="h-5 w-5" />
-          Évolution des accès
-        </CardTitle>
-        <CardDescription>
-          Tendances sur les 7 derniers jours
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="h-[300px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-              <XAxis 
-                dataKey="name" 
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis 
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-              />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'hsl(var(--card))',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px'
-                }}
-              />
-              <Legend />
-              <Line 
-                type="monotone" 
-                dataKey="employees" 
-                name="Employés" 
-                stroke="hsl(var(--primary))" 
-                strokeWidth={2}
-                dot={{ fill: 'hsl(var(--primary))' }}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="visitors" 
-                name="Visiteurs" 
-                stroke="hsl(var(--accent-foreground))" 
-                strokeWidth={2}
-                dot={{ fill: 'hsl(var(--accent-foreground))' }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+    <div className="glass-card rounded-2xl p-6 h-full flex flex-col">
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-primary/10">
+            <TrendingUp className="h-5 w-5 text-primary" />
+          </div>
+          <h3 className="text-xl font-bold tracking-tight">Évolution des accès</h3>
         </div>
-      </CardContent>
-    </Card>
+        <span className="text-xs font-semibold px-2 py-1 rounded-md bg-muted text-muted-foreground uppercase tracking-wider">7 derniers jours</span>
+      </div>
+
+      <div className="flex-1 min-h-[300px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" className="stroke-muted opacity-50" vertical={false} />
+            <XAxis
+              dataKey="name"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+              dy={10}
+            />
+            <YAxis
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+            />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: 'hsl(var(--card))',
+                border: '1px solid hsl(var(--border))',
+                borderRadius: '12px',
+                boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'
+              }}
+            />
+            <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
+            <Line
+              type="monotone"
+              dataKey="employees"
+              name={t('common.employees', 'Employés')}
+              stroke="hsl(var(--primary))"
+              strokeWidth={3}
+              dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2, r: 4, stroke: 'hsl(var(--background))' }}
+              activeDot={{ r: 6, strokeWidth: 0 }}
+            />
+            <Line
+              type="monotone"
+              dataKey="visitors"
+              name={t('common.visitors', 'Visiteurs')}
+              stroke="hsl(var(--accent))"
+              strokeWidth={3}
+              dot={{ fill: 'hsl(var(--accent))', strokeWidth: 2, r: 4, stroke: 'hsl(var(--background))' }}
+              activeDot={{ r: 6, strokeWidth: 0 }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
   );
 }

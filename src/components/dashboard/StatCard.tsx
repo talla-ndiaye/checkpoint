@@ -32,25 +32,31 @@ export function StatCard({ title, value, description, icon: Icon, trend, variant
   const isColoredVariant = variant !== 'default';
 
   return (
-    <div className={`stat-card ${variantStyles[variant]}`}>
-      <div className="flex items-start justify-between">
+    <div className={`stat-card ${variantStyles[variant]} relative overflow-hidden group`}>
+      {/* Subtle shine effect on hover */}
+      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out pointer-events-none" />
+
+      <div className="flex items-start justify-between relative z-10">
         <div className="space-y-2">
-          <p className={`text-sm font-medium ${isColoredVariant ? 'opacity-80' : 'text-muted-foreground'}`}>
+          <p className={`text-sm font-medium tracking-wide uppercase ${isColoredVariant ? 'text-white/70' : 'text-muted-foreground/80'}`}>
             {title}
           </p>
-          <p className="text-3xl font-bold tracking-tight">{value}</p>
+          <p className="text-3xl font-extrabold tracking-tight">{value}</p>
           {description && (
-            <p className={`text-sm ${isColoredVariant ? 'opacity-70' : 'text-muted-foreground'}`}>
+            <p className={`text-sm leading-relaxed ${isColoredVariant ? 'text-white/60' : 'text-muted-foreground'}`}>
               {description}
             </p>
           )}
           {trend && (
-            <p className={`text-sm font-medium ${trend.isPositive ? 'text-success' : 'text-destructive'}`}>
-              {trend.isPositive ? '+' : ''}{trend.value}% ce mois
-            </p>
+            <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-semibold ${trend.isPositive
+                ? 'bg-success/10 text-success border border-success/20'
+                : 'bg-destructive/10 text-destructive border border-destructive/20'
+              }`}>
+              <span>{trend.isPositive ? '↑' : '↓'} {trend.value}%</span>
+            </div>
           )}
         </div>
-        <div className={`p-3 rounded-xl ${iconStyles[variant]}`}>
+        <div className={`p-3.5 rounded-2xl ${iconStyles[variant]} shadow-inner transform transition-transform group-hover:scale-110 duration-300`}>
           <Icon className="h-6 w-6" />
         </div>
       </div>
