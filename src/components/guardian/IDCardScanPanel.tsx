@@ -39,6 +39,8 @@ export function IDCardScanPanel({ onComplete }: IDCardScanPanelProps) {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [cameraPermission, setCameraPermission] = useState<'prompt' | 'granted' | 'denied' | 'unknown'>('unknown');
+  const capturedFrontImageRef = useRef<string | null>(null);
+  const capturedBackImageRef = useRef<string | null>(null);
 
   // Auto-capture logic
   useEffect(() => {
@@ -181,24 +183,41 @@ export function IDCardScanPanel({ onComplete }: IDCardScanPanelProps) {
         const imageData = canvas.toDataURL('image/jpeg', 0.8);
 
         if (scanStep === 'front') {
+          capturedFrontImageRef.current = imageData;
           setFrontImage(imageData);
           setStabilityCounter(0);
           setScanStep('back');
           toast.info('Recto capturé. Maintenant, tournez la carte pour scanner le verso.');
         } else if (scanStep === 'back') {
+          capturedBackImageRef.current = imageData;
           setBackImage(imageData);
           setScanStep('captured');
           stopCamera();
-          processImages(frontImage!, imageData);
+
+          const frontFromRef = capturedFrontImageRef.current;
+          if (frontFromRef) {
+            processImages(frontFromRef, imageData);
+          } else {
+            console.error('Front image missing in ref!');
+            toast.error('Erreur lors de la capture du recto. Veuillez recommencer.');
+            handleReset();
+          }
         }
       }
     }
   };
 
   const processImages = async (front: string, back: string) => {
+    console.log('Starting images processing...', {
+      frontSize: front?.length,
+      backSize: back?.length
+    });
     const result = await extractIDCardData(front, back);
     if (result) {
+      console.log('Extraction success:', result);
       setEditableData(result);
+    } else {
+      console.warn('Extraction failed or returned no result');
     }
   };
 
@@ -483,9 +502,14 @@ export function IDCardScanPanel({ onComplete }: IDCardScanPanelProps) {
                   if (files && files.length >= 2) {
                     const reader1 = new FileReader();
                     reader1.onload = (ev1) => {
+                      const front = ev1.target?.result as string;
+                      setFrontImage(front);
+
                       const reader2 = new FileReader();
                       reader2.onload = (ev2) => {
-                        processImages(ev1.target?.result as string, ev2.target?.result as string);
+                        const back = ev2.target?.result as string;
+                        setBackImage(back);
+                        processImages(front, back);
                       };
                       reader2.readAsDataURL(files[1]);
                     };

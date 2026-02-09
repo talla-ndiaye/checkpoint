@@ -31,13 +31,25 @@ export function useIDCardScanner() {
   const extractIDCardData = useCallback(async (frontImage: string, backImage: string): Promise<IDCardData | null> => {
     setProcessing(true);
     try {
-      console.log('Sending images to OCR edge function...');
+      console.log('Image data status:', {
+        frontLength: frontImage?.length,
+        backLength: backImage?.length,
+        frontPrefix: frontImage?.substring(0, 30),
+        backPrefix: backImage?.substring(0, 30)
+      });
+
+      const payload = {
+        frontImageBase64: frontImage.replace(/^data:image\/\w+;base64,/, ''),
+        backImageBase64: backImage.replace(/^data:image\/\w+;base64,/, '')
+      };
+
+      console.log('Payload prepared (base64 lengths):', {
+        front: payload.frontImageBase64.length,
+        back: payload.backImageBase64.length
+      });
 
       const { data, error } = await supabase.functions.invoke('scan-id-card', {
-        body: {
-          frontImageBase64: frontImage.replace(/^data:image\/\w+;base64,/, ''),
-          backImageBase64: backImage.replace(/^data:image\/\w+;base64,/, '')
-        }
+        body: payload
       });
 
       if (error) {
@@ -47,9 +59,12 @@ export function useIDCardScanner() {
       }
 
       if (!data?.success || !data?.data) {
+        console.error('Edge function returned failure:', data);
         toast.error(data?.error || 'Impossible de lire les informations de la carte');
         return null;
       }
+
+      console.log('Successfully received data from AI:', data.data);
 
       const idCardData = data.data as IDCardData;
       setExtractedData(idCardData);
