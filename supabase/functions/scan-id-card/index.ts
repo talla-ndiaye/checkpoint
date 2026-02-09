@@ -16,7 +16,7 @@ interface IDCardData {
   expiryDate: string | null;
 }
 
-Deno.serve(async (req) => {
+Deno.serve(async (req: Request) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -70,33 +70,40 @@ Deno.serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'google/gemini-2.0-flash-exp',
         messages: [
           {
             role: 'user',
             content: [
               {
                 type: 'text',
-                text: `Analyze these two images (Front and Back) of a Senegal identity card (CEDEAO/ECOWAS) and extract the information.
-                Combine data from both sides. Usually:
-                - Front has Name, First Name, ID Card Number, Birth Date, Gender.
-                - Back usually has Address and Expiry Date.
+                text: `Analyze these two images (Front and Back) of a Senegal identity card.
+                There are two common versions: 
+                1. CEDEAO/ECOWAS: Card number is "N° de la carte d'identité". MRZ on the back.
+                2. Biometric CNI: Card number is "N° d'Identification Nationale" (found at the bottom). Large barcode on the back.
+
+                Extract information regardless of which side it appears on.
+                
+                Guidelines:
+                - Name/First Name: "Nom" and "Prénoms".
+                - ID Card Number: Look for both "N° de la carte d'identité" OR "N° d'Identification Nationale" (NIN).
+                - Dates: "Date de naissance" and "Date d'expiration". Convert to YYYY-MM-DD.
+                - Address: "Adresse" or "Adresse du domicile".
+                - Gender: "Sexe" (M or F).
+                - Cross-verification: If it's a CEDEAO card, use the MRZ code on the back (I<SEN...) to confirm Name and numbers.
 
                 Extract these fields in JSON:
                 - firstName: The first name (Prénoms)
                 - lastName: The last name (Nom)
-                - idCardNumber: The ID card number (N° de la carte d'identité)
-                - birthDate: Date of birth in YYYY-MM-DD format (Date de naissance)
-                - gender: Gender as M or F (Sexe)
-                - nationality: Nationality code, default to "SEN"
-                - address: Full address (Adresse du domicile)
-                - expiryDate: Expiry date in YYYY-MM-DD format (Date d'expiration)
+                - idCardNumber: The ID card number (N° de la carte d'identité / NIN)
+                - birthDate: Date of birth (YYYY-MM-DD)
+                - gender: Gender (M or F)
+                - nationality: Nationality code (default to "SEN")
+                - address: Full address
+                - expiryDate: Expiry date (YYYY-MM-DD)
 
                 If a field cannot be read clearly, set it to null.
-                Respond ONLY with valid JSON.
-
-                Example response:
-                {"firstName":"TALLA","lastName":"NDIAYE","idCardNumber":"1 01 2001092 00073 0","birthDate":"2001-09-20","gender":"M","nationality":"SEN","address":"S/51 HAMO 3 GUEDIAWAYE","expiryDate":"2030-08-25"}`
+                Respond ONLY with valid JSON.`
               },
               {
                 type: 'image_url',
