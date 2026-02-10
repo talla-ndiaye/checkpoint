@@ -16,6 +16,7 @@ Deno.serve(async (req) => {
     
     const authHeader = req.headers.get('authorization')
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('Missing or invalid authorization header')
       return new Response(JSON.stringify({ error: 'Non autorisé - Token manquant' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -30,7 +31,7 @@ Deno.serve(async (req) => {
     const { data: userData, error: userError } = await adminClient.auth.getUser(token)
     
     if (userError || !userData?.user) {
-      console.error('Auth error:', userError?.message || 'No user found')
+      console.error('Auth verify error:', userError?.message || 'No user found', 'Token prefix:', token.substring(0, 10))
       return new Response(JSON.stringify({ error: 'Non autorisé - Token invalide' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
