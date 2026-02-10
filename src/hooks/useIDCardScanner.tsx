@@ -13,6 +13,44 @@ export interface IDCardData {
   expiryDate: string | null;
 }
 
+/**
+ * Parses the raw data from a Senegal ID PDF417 barcode
+ * Usually formatted as: NIN|PRENOM|NOM|DATE_NAISSANCE|SEXE|...
+ */
+export function parseBarcodeData(raw: string): Partial<IDCardData> | null {
+  try {
+    console.log('Parsing raw barcode data:', raw);
+
+    // Pattern 1: Pipes (Common for direct encoding)
+    // NIN|NOM|PRENOM|DATE_NAISSANCE|SEXE
+    if (raw.includes('|')) {
+      const parts = raw.split('|');
+      return {
+        idCardNumber: parts[0]?.trim(),
+        lastName: parts[1]?.trim(),
+        firstName: parts[2]?.trim(),
+        birthDate: parts[3]?.trim(),
+        gender: parts[4]?.trim()?.substring(0, 1),
+      };
+    }
+
+    // Pattern 2: MRZ (Machine Readable Zone)
+    // Example: IDSEN1234567890<<<<<<<<<<<<<<
+    if (raw.length > 30 && (raw.includes('<<') || raw.startsWith('ID'))) {
+      // Very basic extraction of NIN for CEDEAO cards
+      const ninMatch = raw.match(/IDSEN(\d+)/);
+      if (ninMatch) {
+        return { idCardNumber: ninMatch[1] };
+      }
+    }
+
+    return null;
+  } catch (e) {
+    console.error('Error parsing barcode data:', e);
+    return null;
+  }
+}
+
 export interface WalkInVisitorResult {
   id: string;
   firstName: string;
@@ -48,19 +86,31 @@ export function useIDCardScanner() {
         back: payload.backImageBase64.length
       });
 
+      console.log('Invoking Edge Function: scan-id-card');
       const { data, error } = await supabase.functions.invoke('scan-id-card', {
         body: payload
       });
 
       if (error) {
-        console.error('Edge function error:', error);
-        toast.error('Erreur lors de l\'analyse de la carte');
+        console.error('--- Edge Function Error ---');
+        console.error('Error object:', error);
+        console.error('Status:', error.status);
+        console.error('Message:', error.message);
+
+        if (error.message?.includes('failed to fetch')) {
+          toast.error('Erreur de connexion : Impossible de joindre le serveur Supabase');
+        } else {
+          toast.error(`Erreur d'analyse (Code: ${error.status || '500'})`);
+        }
         return null;
       }
 
+      console.log('--- Edge Function Result ---');
+      console.log('Data received:', data);
+
       if (!data?.success || !data?.data) {
-        console.error('Edge function returned failure:', data);
-        toast.error(data?.error || 'Impossible de lire les informations de la carte');
+        console.error('Success field is false or data is missing');
+        toast.error(data?.error || 'Intelligence artificielle : Erreur d\'analyse des images');
         return null;
       }
 

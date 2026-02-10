@@ -69,90 +69,74 @@ Deno.serve(async (req: Request) => {
     console.log('Processing ID card images for user:', user.id);
 
     // Use Direct Google Gemini API
-    const geminiApiKey = Deno.env.get('GOOGLE_GEMINI_API_KEY');
+    const geminiApiKey = Deno.env.get('GOOGLE_GEMINI_API_KEY') || Deno.env.get('LOVABLE_API_KEY');
+    
+    console.log('API Key present:', !!geminiApiKey);
+    if (geminiApiKey) {
+      console.log('API Key prefix:', geminiApiKey.substring(0, 6) + '...');
+    }
+
     if (!geminiApiKey) {
-      throw new Error('GOOGLE_GEMINI_API_KEY not configured');
+      console.error('API Key missing: Neither GOOGLE_GEMINI_API_KEY nor LOVABLE_API_KEY is set');
+      throw new Error('Intelligence artificielle non configurée (Clé API manquante)');
     }
 
     console.log('Calling Google Gemini API directly...');
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-pro-vision:generateContent?key=${geminiApiKey}`;
     
+    const geminiPayload = {
+      contents: [
+        {
+          parts: [
+            {
+              text: `Analyze these two images (Front and Back) of a Senegal identity card.
+              Extract these fields in JSON: firstName, lastName, idCardNumber, birthDate, gender, nationality, address, expiryDate.
+              If a field cannot be read, set it to null. Respond ONLY with valid JSON.`
+            },
+            { inlineData: { mimeType: "image/jpeg", data: frontImageBase64 } },
+            { inlineData: { mimeType: "image/jpeg", data: backImageBase64 } }
+          ]
+        }
+      ],
+      generationConfig: {
+        temperature: 0.1,
+      }
+    };
+
+    console.log('Sending request to Gemini...');
     const aiResponse = await fetch(geminiUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: `Analyze these two images (Front and Back) of a Senegal identity card.
-                There are two common versions: 
-                1. CEDEAO/ECOWAS: Card number is "N° de la carte d'identité". MRZ on the back.
-                2. Biometric CNI: Card number is "N° d'Identification Nationale" (found at the bottom). Large barcode on the back.
-
-                Extract information regardless of which side it appears on.
-                
-                Guidelines:
-                - Name/First Name: "Nom" and "Prénoms".
-                - ID Card Number: Look for both "N° de la carte d'identité" OR "N° d'Identification Nationale" (NIN).
-                - Dates: "Date de naissance" and "Date d'expiration". Convert to YYYY-MM-DD.
-                - Address: "Adresse" or "Adresse du domicile".
-                - Gender: "Sexe" (M or F).
-                - Cross-verification: If it's a CEDEAO card, use the MRZ code on the back (I<SEN...) to confirm Name and numbers.
-
-                Extract these fields in JSON:
-                - firstName: The first name (Prénoms)
-                - lastName: The last name (Nom)
-                - idCardNumber: The ID card number (N° de la carte d'identité / NIN)
-                - birthDate: Date of birth (YYYY-MM-DD)
-                - gender: Gender (M or F)
-                - nationality: Nationality code (default to "SEN")
-                - address: Full address
-                - expiryDate: Expiry date (YYYY-MM-DD)
-
-                If a field cannot be read clearly, set it to null.
-                Respond ONLY with valid JSON.`
-              },
-              {
-                inlineData: {
-                  mimeType: "image/jpeg",
-                  data: frontImageBase64
-                }
-              },
-              {
-                inlineData: {
-                  mimeType: "image/jpeg",
-                  data: backImageBase64
-                }
-              }
-            ]
-          }
-        ],
-        generationConfig: {
-          temperature: 0.1,
-          topP: 0.95,
-          topK: 64,
-          maxOutputTokens: 1024,
-          responseMimeType: "application/json",
-        }
-      })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(geminiPayload)
     });
+
+    console.log('Gemini response status:', aiResponse.status);
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
-      console.error('Gemini API error:', errorText);
-      throw new Error(`Gemini API error: ${aiResponse.status}`);
+      console.error('Gemini API error details:', errorText);
+      try {
+        const errorJson = JSON.parse(errorText);
+        const geminiError = errorJson.error?.message || errorText;
+        return new Response(
+          JSON.stringify({ success: false, error: `Erreur Gemini: ${geminiError}`, details: errorJson }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } catch {
+        return new Response(
+          JSON.stringify({ success: false, error: `Erreur de l'IA (Gemini): ${aiResponse.status}`, raw: errorText }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     const aiData = await aiResponse.json();
+    console.log('Gemini data received successfully');
     const content = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
     
-    console.log('AI response content:', content);
-
     if (!content) {
-      throw new Error('No response from AI');
+      console.error('No content in Gemini response:', aiData);
+      throw new Error('Aucune réponse générée par l\'IA');
     }
 
     // Parse the JSON response from AI
