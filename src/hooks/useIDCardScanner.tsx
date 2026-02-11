@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { extractIDCardDataFromImages } from '@/lib/idCardOcr';
 import { createWorker } from 'tesseract.js';
 
 export interface IDCardData {
@@ -57,6 +58,32 @@ export function useIDCardScanner() {
   const [processing, setProcessing] = useState(false);
   const [ocrProgress, setOcrProgress] = useState(0);
 
+  const [ocrProgress, setOcrProgress] = useState<{ progress: number; status: string }>({ progress: 0, status: '' });
+
+  const extractIDCardData = useCallback(async (frontImage: string, backImage: string): Promise<IDCardData | null> => {
+    setProcessing(true);
+    setOcrProgress({ progress: 0, status: 'Demarrage...' });
+    try {
+      const result = await extractIDCardDataFromImages(
+        frontImage,
+        backImage,
+        (progress, status) => {
+          setOcrProgress({ progress, status });
+        }
+      );
+
+      if (!result.firstName && !result.lastName && !result.idCardNumber) {
+        toast.error('Impossible d\'extraire les informations. Verifiez la qualite des images.');
+        return null;
+      }
+
+      const idCardData: IDCardData = result;
+      setExtractedData(idCardData);
+      toast.success('Informations extraites avec succes !');
+      return idCardData;
+    } catch (error) {
+      console.error('Error extracting ID card data:', error);
+      toast.error('Erreur lors de l\'extraction des donnees. Reessayez avec des images plus nettes.');
   /**
    * Perfrom Local OCR using Tesseract.js
    */
@@ -122,6 +149,7 @@ export function useIDCardScanner() {
       return null;
     } finally {
       setProcessing(false);
+      setOcrProgress({ progress: 0, status: '' });
     }
   }, []);
 
@@ -178,5 +206,22 @@ export function useIDCardScanner() {
     }
   }, []);
 
+  const reset = useCallback(() => {
+    setExtractedData(null);
+    setScanning(false);
+    setProcessing(false);
+  }, []);
+
+  return {
+    scanning,
+    setScanning,
+    extractedData,
+    setExtractedData,
+    processing,
+    ocrProgress,
+    extractIDCardData,
+    registerWalkInVisitor,
+    reset
+  };
   return { scanning, setScanning, extractedData, setExtractedData, processing, ocrProgress, performLocalOCR, extractIDCardData, registerWalkInVisitor, reset: () => setExtractedData(null) };
 }
