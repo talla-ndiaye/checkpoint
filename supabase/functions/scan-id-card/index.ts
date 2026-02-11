@@ -82,7 +82,7 @@ Deno.serve(async (req: Request) => {
     }
 
     console.log('Calling Google Gemini API directly...');
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-pro-vision:generateContent?key=${geminiApiKey}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
     
     const geminiPayload = {
       contents: [
@@ -100,6 +100,7 @@ Deno.serve(async (req: Request) => {
       ],
       generationConfig: {
         temperature: 0.1,
+        responseMimeType: "application/json",
       }
     };
 
