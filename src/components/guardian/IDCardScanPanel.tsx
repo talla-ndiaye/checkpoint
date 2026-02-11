@@ -17,6 +17,7 @@ type ScanStep = 'front' | 'back' | 'processing' | 'review' | 'success';
 export function IDCardScanPanel({ onComplete }: IDCardScanPanelProps) {
   const {
     processing,
+    ocrProgress,
     extractIDCardData,
     registerWalkInVisitor,
     reset
@@ -193,11 +194,19 @@ export function IDCardScanPanel({ onComplete }: IDCardScanPanelProps) {
                 <div className="w-20 h-20 rounded-full border-4 border-primary border-t-transparent animate-spin" />
               </div>
             </div>
-            <div className="space-y-3">
-              <h3 className="text-2xl font-black gradient-text">Analyse IA en cours...</h3>
-              <p className="text-muted-foreground text-sm max-w-xs">
-                GPT-4o analyse les images de votre carte d'identite pour en extraire les informations.
+            <div className="space-y-3 w-full max-w-xs">
+              <h3 className="text-2xl font-black gradient-text">Analyse en cours...</h3>
+              <p className="text-muted-foreground text-sm">
+                {ocrProgress.status || 'Lecture des images de la carte d\'identite...'}
               </p>
+              {ocrProgress.progress > 0 && (
+                <div className="w-full bg-muted rounded-full h-2.5 overflow-hidden">
+                  <div
+                    className="bg-primary h-full rounded-full transition-all duration-300"
+                    style={{ width: `${ocrProgress.progress}%` }}
+                  />
+                </div>
+              )}
             </div>
             <div className="flex gap-3">
               {frontImage && (

@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { extractIDCardDataFromImages } from '@/lib/idCardOcr';
 
 export interface IDCardData {
   firstName: string;
@@ -66,37 +67,36 @@ export function useIDCardScanner() {
   const [extractedData, setExtractedData] = useState<IDCardData | null>(null);
   const [processing, setProcessing] = useState(false);
 
+  const [ocrProgress, setOcrProgress] = useState<{ progress: number; status: string }>({ progress: 0, status: '' });
+
   const extractIDCardData = useCallback(async (frontImage: string, backImage: string): Promise<IDCardData | null> => {
     setProcessing(true);
+    setOcrProgress({ progress: 0, status: 'Demarrage...' });
     try {
-      const payload = {
-        frontImageBase64: frontImage.replace(/^data:image\/\w+;base64,/, ''),
-        backImageBase64: backImage.replace(/^data:image\/\w+;base64,/, '')
-      };
+      const result = await extractIDCardDataFromImages(
+        frontImage,
+        backImage,
+        (progress, status) => {
+          setOcrProgress({ progress, status });
+        }
+      );
 
-      const response = await fetch('/api/scan-id-card', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || !data?.success || !data?.data) {
-        toast.error(data?.error || 'Erreur lors de l\'analyse des images par l\'IA');
+      if (!result.firstName && !result.lastName && !result.idCardNumber) {
+        toast.error('Impossible d\'extraire les informations. Verifiez la qualite des images.');
         return null;
       }
 
-      const idCardData = data.data as IDCardData;
+      const idCardData: IDCardData = result;
       setExtractedData(idCardData);
       toast.success('Informations extraites avec succes !');
       return idCardData;
     } catch (error) {
       console.error('Error extracting ID card data:', error);
-      toast.error('Erreur lors de l\'extraction des donnees');
+      toast.error('Erreur lors de l\'extraction des donnees. Reessayez avec des images plus nettes.');
       return null;
     } finally {
       setProcessing(false);
+      setOcrProgress({ progress: 0, status: '' });
     }
   }, []);
 
@@ -211,6 +211,7 @@ export function useIDCardScanner() {
     extractedData,
     setExtractedData,
     processing,
+    ocrProgress,
     extractIDCardData,
     registerWalkInVisitor,
     reset
