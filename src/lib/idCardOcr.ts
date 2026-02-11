@@ -19,6 +19,13 @@ export interface ExtractedIDData {
  * Line 2: 0109202M3008258SEN<<<<<<<<<<<<6
  * Line 3: NDIAYE<<TALLA<<<<<<<<<<<<<<<<<
  *
+ * Line 1 breakdown:
+ *   - Pos 0-1:  Document code (I<)
+ *   - Pos 2-4:  Issuing state (SEN)
+ *   - Pos 5-13: Document number (9 chars)
+ *   - Pos 14:   Check digit
+ *   - Pos 15-29: Additional data (birth date, etc.)
+ *
  * Line 2 breakdown:
  *   - Pos 0-5:  Birth date YYMMDD (010920 = 20/09/2001)
  *   - Pos 6:    Check digit
@@ -32,28 +39,36 @@ export interface ExtractedIDData {
 function parseTD1MRZ(lines: string[]): ExtractedIDData | null {
   if (lines.length < 3) return null;
 
-  // Clean MRZ lines: normalize common OCR errors in MRZ context
-  const cleanMRZ = (line: string): string => {
+  // Clean MRZ lines: normalize common OCR errors
+  // Different cleaning for name line vs numeric fields
+  const cleanMRZNumeric = (line: string): string => {
     return line
       .replace(/\s/g, '')
       .replace(/[{}[\]()]/g, '<')
-      .replace(/[|!lI]/g, '1')  // Common OCR confusion in number context
+      .replace(/[|!]/g, '1')  // Common OCR confusion | and ! -> 1
+      .replace(/l/g, '1')     // lowercase L -> 1 in numeric context
+      .replace(/I/g, '1')     // uppercase I -> 1 in numeric context
       .toUpperCase();
   };
 
-  const line1 = cleanMRZ(lines[0]);
-  const line2 = cleanMRZ(lines[1]);
-  const line3 = cleanMRZ(lines[2]);
+  const cleanMRZName = (line: string): string => {
+    return line
+      .replace(/\s/g, '')
+      .replace(/[{}[\]()]/g, '<')
+      .toUpperCase();
+  };
 
-  console.log('[v0] MRZ cleaned line1:', line1);
-  console.log('[v0] MRZ cleaned line2:', line2);
-  console.log('[v0] MRZ cleaned line3:', line3);
+  const line1 = cleanMRZNumeric(lines[0]);
+  const line2 = cleanMRZNumeric(lines[1]);
+  const line3 = cleanMRZName(lines[2]); // Preserve letters in name line
 
   // Validate minimum lengths
   if (line1.length < 20 || line2.length < 15 || line3.length < 5) return null;
 
+  // Line 1 - Document number (positions 5-13)
+  const docNumber = line1.substring(5, 14).replace(/<+$/, '');
+
   // Line 2 - dates and gender
-  // Find the gender character (M or F) - it's at position 7
   const birthRaw = line2.substring(0, 6);
   const gender = line2.charAt(7);
   const expiryRaw = line2.substring(8, 14);
@@ -75,7 +90,7 @@ function parseTD1MRZ(lines: string[]): ExtractedIDData | null {
   return {
     firstName: firstName || '',
     lastName: lastName || '',
-    idCardNumber: '', // Will be filled from recto or NIN parsing
+    idCardNumber: docNumber || '',
     birthDate: formatDate(birthRaw),
     gender: gender === 'M' || gender === 'F' ? gender : null,
     nationality: 'SEN',
@@ -162,8 +177,6 @@ function parseRectoOCR(ocrText: string): Partial<ExtractedIDData> {
   const result: Partial<ExtractedIDData> = {};
   const lines = ocrText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
 
-  console.log('[v0] Recto OCR lines:', lines);
-
   // Helper: given a label, find the VALUE on same line after label or on the next line
   const findValue = (labelRegex: RegExp): string | null => {
     for (let i = 0; i < lines.length; i++) {
@@ -235,9 +248,9 @@ function parseRectoOCR(ocrText: string): Partial<ExtractedIDData> {
   // Old CNI format: "N° d'Identification Nationale" or just the number at bottom
   const idPatterns = [
     // CEDEAO: N de la carte d'identite
-    /n[°o\s]*\s*de\s*la\s*carte\s*d['']?identit[eé]\s*[:;,.\-]?\s*([\d\s]+)/i,
+    /n[°o\s]*\s*de\s*la\s*carte\s*d'?identit[eé]\s*[:;,.\-]?\s*([\d\s]+)/i,
     // Old CNI: N d'Identification Nationale
-    /n[°o\s]*\s*d['']?identification\s*nationale\s*[:;,.\-]?\s*([\d\s]+)/i,
+    /n[°o\s]*\s*d'?identification\s*nationale\s*[:;,.\-]?\s*([\d\s]+)/i,
     /identification\s*nationale\s*[:;,.\-]?\s*([\d\s]+)/i,
   ];
 
@@ -303,29 +316,18 @@ export async function extractIDCardDataFromImages(
   const frontText = frontResult.data.text;
   const backText = backResult.data.text;
 
-  console.log('[v0] ===== FRONT OCR TEXT =====');
-  console.log('[v0]', frontText);
-  console.log('[v0] ===== BACK OCR TEXT =====');
-  console.log('[v0]', backText);
-
   // --- Parse MRZ from back ---
   const mrzLines = findMRZLines(backText);
   let mrzData: ExtractedIDData | null = null;
   if (mrzLines) {
-    console.log('[v0] MRZ lines detected:', mrzLines);
     mrzData = parseTD1MRZ(mrzLines);
-    console.log('[v0] MRZ parsed:', mrzData);
-  } else {
-    console.log('[v0] No MRZ lines found in verso');
   }
 
   // --- Extract NIN from verso ---
   const versoNIN = extractNINFromVerso(backText);
-  console.log('[v0] Verso NIN:', versoNIN);
 
   // --- Parse recto ---
   const rectoData = parseRectoOCR(frontText);
-  console.log('[v0] Recto parsed:', rectoData);
 
   onProgress?.(100, 'Termine !');
 
@@ -341,8 +343,6 @@ export async function extractIDCardDataFromImages(
     address: rectoData.address || null,
     expiryDate: mrzData?.expiryDate || rectoData.expiryDate || null,
   };
-
-  console.log('[v0] Final merged result:', merged);
 
   return merged;
 }

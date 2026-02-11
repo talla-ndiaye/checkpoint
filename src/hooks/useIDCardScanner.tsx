@@ -1,8 +1,6 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { extractIDCardDataFromImages } from '@/lib/idCardOcr';
-import { createWorker } from 'tesseract.js';
 
 export interface IDCardData {
   firstName: string;
@@ -17,10 +15,14 @@ export interface IDCardData {
 
 /**
  * Parses the raw data from a Senegal ID PDF417 barcode
+ * Usually formatted as: NIN|PRENOM|NOM|DATE_NAISSANCE|SEXE|...
  */
 export function parseBarcodeData(raw: string): Partial<IDCardData> | null {
   try {
     console.log('Parsing raw barcode data:', raw);
+
+    // Pattern 1: Pipes (Common for direct encoding)
+    // NIN|NOM|PRENOM|DATE_NAISSANCE|SEXE
     if (raw.includes('|')) {
       const parts = raw.split('|');
       return {
@@ -31,10 +33,17 @@ export function parseBarcodeData(raw: string): Partial<IDCardData> | null {
         gender: parts[4]?.trim()?.substring(0, 1),
       };
     }
+
+    // Pattern 2: MRZ (Machine Readable Zone)
+    // Example: IDSEN1234567890<<<<<<<<<<<<<<
     if (raw.length > 30 && (raw.includes('<<') || raw.startsWith('ID'))) {
+      // Very basic extraction of NIN for CEDEAO cards
       const ninMatch = raw.match(/IDSEN(\d+)/);
-      if (ninMatch) return { idCardNumber: ninMatch[1] };
+      if (ninMatch) {
+        return { idCardNumber: ninMatch[1] };
+      }
     }
+
     return null;
   } catch (e) {
     console.error('Error parsing barcode data:', e);
@@ -56,7 +65,6 @@ export function useIDCardScanner() {
   const [scanning, setScanning] = useState(false);
   const [extractedData, setExtractedData] = useState<IDCardData | null>(null);
   const [processing, setProcessing] = useState(false);
-  const [ocrProgress, setOcrProgress] = useState(0);
 
   const [ocrProgress, setOcrProgress] = useState<{ progress: number; status: string }>({ progress: 0, status: '' });
 
@@ -64,6 +72,9 @@ export function useIDCardScanner() {
     setProcessing(true);
     setOcrProgress({ progress: 0, status: 'Demarrage...' });
     try {
+      // Dynamic import to code-split the OCR library
+      const { extractIDCardDataFromImages } = await import('@/lib/idCardOcr');
+      
       const result = await extractIDCardDataFromImages(
         frontImage,
         backImage,
@@ -84,68 +95,6 @@ export function useIDCardScanner() {
     } catch (error) {
       console.error('Error extracting ID card data:', error);
       toast.error('Erreur lors de l\'extraction des donnees. Reessayez avec des images plus nettes.');
-  /**
-   * Perfrom Local OCR using Tesseract.js
-   */
-  const performLocalOCR = useCallback(async (image: string): Promise<Partial<IDCardData> | null> => {
-    setProcessing(true);
-    setOcrProgress(0);
-    try {
-      console.log('Starting local OCR with Tesseract...');
-      const worker = await createWorker('fra+eng', 1, {
-        logger: m => {
-          if (m.status === 'recognizing text') {
-            setOcrProgress(Math.floor(m.progress * 100));
-          }
-        },
-      });
-      const { data: { text } } = await worker.recognize(image);
-      console.log('OCR result text:', text);
-      await worker.terminate();
-
-      // Extract NIN (Senegal ID numbers are 13 or 14 digits)
-      const ninMatch = text.match(/\b\d{13,14}\b/);
-
-      // Basic extraction logic: looking for lines that look like a name
-      // This is hit-over-miss, but usually names are in uppercase
-      const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 2);
-
-      // Heuristique: Le nom est souvent sur une ligne en majuscules
-      const upperLines = lines.filter(l => l === l.toUpperCase() && !l.includes(':'));
-
-      return {
-        idCardNumber: ninMatch ? ninMatch[0] : '',
-        lastName: upperLines[0] || '',
-        firstName: upperLines[1] || '',
-        nationality: 'SEN'
-      };
-    } catch (error) {
-      console.error('OCR Error:', error);
-      toast.error('Erreur lors de l\'analyse locale de l\'image');
-      return null;
-    } finally {
-      setProcessing(false);
-    }
-  }, []);
-
-  const extractIDCardData = useCallback(async (frontImage: string, backImage: string): Promise<IDCardData | null> => {
-    // Falls back to AI if local OCR is not enough
-    setProcessing(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('scan-id-card', {
-        body: {
-          frontImageBase64: frontImage.replace(/^data:image\/\w+;base64,/, ''),
-          backImageBase64: backImage.replace(/^data:image\/\w+;base64,/, '')
-        }
-      });
-
-      if (error || !data?.success) throw new Error(data?.error || 'AI Failed');
-
-      const idCardData = data.data as IDCardData;
-      setExtractedData(idCardData);
-      return idCardData;
-    } catch (error) {
-      console.error('AI Extraction error:', error);
       return null;
     } finally {
       setProcessing(false);
@@ -158,15 +107,34 @@ export function useIDCardScanner() {
     actionType: 'entry' | 'exit'
   ): Promise<WalkInVisitorResult | null> => {
     try {
+      // Get guardian's site
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Non authentifié');
 
-      const { data: guardian } = await supabase.from('guardians').select('site_id').eq('user_id', user.id).single();
-      if (!guardian) throw new Error('Gardien non trouvé');
+      const { data: guardian, error: guardianError } = await supabase
+        .from('guardians')
+        .select('site_id')
+        .eq('user_id', user.id)
+        .single();
 
-      const { data: receiptCodeData } = await supabase.rpc('generate_receipt_code');
+      if (guardianError || !guardian) {
+        throw new Error('Gardien non trouvé');
+      }
+
+      // Create walk-in visitor record
+      // Generate receipt code
+      const { data: receiptCodeData, error: receiptCodeError } = await supabase.rpc('generate_receipt_code');
+      if (receiptCodeError) {
+        console.error('Error generating receipt code:', receiptCodeError);
+        throw new Error('Erreur lors de la génération du code de reçu');
+      }
+
       const receiptCode = receiptCodeData as string;
-      const qrCodeData = JSON.stringify({ type: 'walk_in_receipt', code: receiptCode, timestamp: Date.now() });
+      const qrCodeData = JSON.stringify({
+        type: 'walk_in_receipt',
+        code: receiptCode,
+        timestamp: Date.now()
+      });
 
       const { data: visitor, error: visitorError } = await supabase
         .from('walk_in_visitors')
@@ -184,24 +152,51 @@ export function useIDCardScanner() {
           receipt_code: receiptCode,
           receipt_qr_code: qrCodeData
         })
-        .select('id, first_name, last_name, id_card_number').single();
+        .select('id, first_name, last_name, id_card_number')
+        .single();
 
-      if (visitorError) throw new Error('Erreur base de données');
+      if (visitorError) {
+        console.error('Error creating walk-in visitor:', visitorError);
+        throw new Error('Erreur lors de l\'enregistrement du visiteur');
+      }
 
-      await supabase.from('access_logs').insert({
-        site_id: guardian.site_id,
-        scanned_by: user.id,
-        action_type: actionType,
-        walk_in_visitor_id: visitor.id
+      // Record access log
+      const { error: accessError } = await supabase
+        .from('access_logs')
+        .insert({
+          site_id: guardian.site_id,
+          scanned_by: user.id,
+          action_type: actionType,
+          walk_in_visitor_id: visitor.id
+        });
+
+      if (accessError) {
+        console.error('Error recording access:', accessError);
+        throw new Error('Erreur lors de l\'enregistrement de l\'accès');
+      }
+
+      toast.success(`${actionType === 'entry' ? 'Entrée' : 'Sortie'} enregistrée pour ${visitor.first_name} ${visitor.last_name}`);
+
+      // Generate QR code data URL for display/printing
+      const QRCodeLib = await import('qrcode');
+      const qrCodeDataUrl = await QRCodeLib.default.toDataURL(qrCodeData, {
+        width: 200,
+        margin: 2,
+        errorCorrectionLevel: 'M'
       });
 
-      const QRCodeLib = await import('qrcode');
-      const qrCodeDataUrl = await QRCodeLib.default.toDataURL(qrCodeData, { width: 200, margin: 2 });
-
-      toast.success('Entrée enregistrée');
-      return { id: visitor.id, firstName: visitor.first_name, lastName: visitor.last_name, idCardNumber: visitor.id_card_number, receiptCode, qrCodeData, qrCodeDataUrl };
+      return {
+        id: visitor.id,
+        firstName: visitor.first_name,
+        lastName: visitor.last_name,
+        idCardNumber: visitor.id_card_number,
+        receiptCode,
+        qrCodeData,
+        qrCodeDataUrl
+      };
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Erreur');
+      console.error('Error registering walk-in visitor:', error);
+      toast.error(error instanceof Error ? error.message : 'Erreur lors de l\'enregistrement');
       return null;
     }
   }, []);
@@ -223,5 +218,4 @@ export function useIDCardScanner() {
     registerWalkInVisitor,
     reset
   };
-  return { scanning, setScanning, extractedData, setExtractedData, processing, ocrProgress, performLocalOCR, extractIDCardData, registerWalkInVisitor, reset: () => setExtractedData(null) };
 }
