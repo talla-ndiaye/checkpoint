@@ -248,9 +248,9 @@ function parseRectoOCR(ocrText: string): Partial<ExtractedIDData> {
   // Old CNI format: "N° d'Identification Nationale" or just the number at bottom
   const idPatterns = [
     // CEDEAO: N de la carte d'identite
-    /n[°o\s]*\s*de\s*la\s*carte\s*d[']?identit[eé]\s*[:;,.\-]?\s*([\d\s]+)/i,
+    /n[°o\s]*\s*de\s*la\s*carte\s*d'?identit[eé]\s*[:;,.\-]?\s*([\d\s]+)/i,
     // Old CNI: N d'Identification Nationale
-    /n[°o\s]*\s*d[']?identification\s*nationale\s*[:;,.\-]?\s*([\d\s]+)/i,
+    /n[°o\s]*\s*d'?identification\s*nationale\s*[:;,.\-]?\s*([\d\s]+)/i,
     /identification\s*nationale\s*[:;,.\-]?\s*([\d\s]+)/i,
   ];
 
