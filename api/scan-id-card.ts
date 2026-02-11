@@ -1,17 +1,3 @@
-import { generateText, Output } from 'ai'
-import { z } from 'zod'
-
-const idCardSchema = z.object({
-  firstName: z.string().describe('Prenom(s) sur la carte'),
-  lastName: z.string().describe('Nom de famille sur la carte'),
-  idCardNumber: z.string().describe('Numero de la carte d identite ou NIN (Numero d Identification Nationale)'),
-  birthDate: z.string().nullable().describe('Date de naissance au format JJ/MM/AAAA'),
-  gender: z.string().nullable().describe('Sexe: M ou F'),
-  nationality: z.string().describe('Nationalite, par defaut SEN si pas visible'),
-  address: z.string().nullable().describe('Adresse du domicile si visible'),
-  expiryDate: z.string().nullable().describe('Date d expiration au format JJ/MM/AAAA'),
-})
-
 export default async function handler(req: Request) {
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
@@ -30,53 +16,102 @@ export default async function handler(req: Request) {
       )
     }
 
-    const { output } = await generateText({
-      model: 'openai/gpt-4o',
-      output: Output.object({
-        schema: idCardSchema,
+    const apiKey = process.env.OPENAI_API_KEY || process.env.AI_GATEWAY_API_KEY
+    if (!apiKey) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Cle API OpenAI non configuree' }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const systemPrompt = `Tu es un systeme OCR specialise dans l'extraction de donnees des cartes d'identite senegalaises (CNI et CEDEAO).
+Tu dois repondre UNIQUEMENT avec un objet JSON valide, sans aucun texte supplementaire, sans markdown, sans backticks.
+
+Le format JSON attendu est:
+{
+  "firstName": "prenom(s)",
+  "lastName": "nom de famille",
+  "idCardNumber": "numero de carte ou NIN",
+  "birthDate": "JJ/MM/AAAA ou null",
+  "gender": "M ou F ou null",
+  "nationality": "SEN par defaut",
+  "address": "adresse ou null",
+  "expiryDate": "JJ/MM/AAAA ou null"
+}`
+
+    const userPrompt = `Analyse ces deux images d'une carte d'identite senegalaise:
+- Image 1: RECTO (face avant)
+- Image 2: VERSO (face arriere)
+
+Extrais toutes les informations visibles. Pour le numero de carte, cherche aussi la zone MRZ au verso (lignes avec des < et des chiffres).
+Si une information n'est pas lisible, mets null.
+Reponds UNIQUEMENT avec le JSON, rien d'autre.`
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: userPrompt },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: `data:image/jpeg;base64,${frontImageBase64}`,
+                  detail: 'high',
+                },
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: `data:image/jpeg;base64,${backImageBase64}`,
+                  detail: 'high',
+                },
+              },
+            ],
+          },
+        ],
+        max_tokens: 1000,
+        temperature: 0.1,
       }),
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: `Tu es un systeme OCR specialise dans l'extraction de donnees des cartes d'identite senegalaises (CNI et CEDEAO).
-
-Analyse les deux images suivantes:
-- Image 1: RECTO (face avant) de la carte d'identite
-- Image 2: VERSO (face arriere) de la carte d'identite
-
-Extrais toutes les informations visibles:
-- Le prenom (firstName)
-- Le nom de famille (lastName)  
-- Le numero de la carte d'identite ou NIN (idCardNumber) - c'est le numero le plus long visible sur la carte
-- La date de naissance (birthDate) au format JJ/MM/AAAA
-- Le sexe (gender): M ou F
-- La nationalite (nationality): par defaut "SEN"
-- L'adresse du domicile (address) si visible
-- La date d'expiration (expiryDate) au format JJ/MM/AAAA
-
-Si une information n'est pas visible ou lisible, mets null.
-Pour le numero de carte, cherche aussi la zone MRZ au verso (les lignes avec des < et des chiffres).
-
-IMPORTANT: Extrais les donnees telles qu'elles apparaissent sur la carte, sans les modifier.`,
-            },
-            {
-              type: 'image',
-              image: frontImageBase64,
-            },
-            {
-              type: 'image',
-              image: backImageBase64,
-            },
-          ],
-        },
-      ],
     })
 
+    if (!response.ok) {
+      const errorBody = await response.text()
+      console.error('OpenAI API error:', response.status, errorBody)
+      return new Response(
+        JSON.stringify({ success: false, error: `Erreur API OpenAI (${response.status})` }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const completion = await response.json()
+    const content = completion.choices?.[0]?.message?.content?.trim()
+
+    if (!content) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Reponse vide de l\'IA' }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Parse the JSON response - handle potential markdown code blocks
+    let jsonStr = content
+    if (jsonStr.startsWith('```')) {
+      jsonStr = jsonStr.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '')
+    }
+
+    const data = JSON.parse(jsonStr)
+
     return new Response(
-      JSON.stringify({ success: true, data: output }),
+      JSON.stringify({ success: true, data }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     )
   } catch (error) {
