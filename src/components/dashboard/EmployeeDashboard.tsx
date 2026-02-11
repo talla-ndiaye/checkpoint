@@ -6,16 +6,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
-
-const statusLabels: Record<string, string> = {
-  pending: 'En attente',
-  approved: 'Approuvée',
-  used: 'Utilisée',
-  expired: 'Expirée',
-  cancelled: 'Annulée'
-};
 import { useTranslation } from 'react-i18next';
-import { Button } from '@/components/ui/button'; // Assuming Button component is available
+import { Button } from '@/components/ui/button';
 
 export function EmployeeDashboard() {
   const { t } = useTranslation();
