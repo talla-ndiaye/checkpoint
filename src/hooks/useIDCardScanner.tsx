@@ -69,60 +69,31 @@ export function useIDCardScanner() {
   const extractIDCardData = useCallback(async (frontImage: string, backImage: string): Promise<IDCardData | null> => {
     setProcessing(true);
     try {
-      console.log('Image data status:', {
-        frontLength: frontImage?.length,
-        backLength: backImage?.length,
-        frontPrefix: frontImage?.substring(0, 30),
-        backPrefix: backImage?.substring(0, 30)
-      });
-
       const payload = {
         frontImageBase64: frontImage.replace(/^data:image\/\w+;base64,/, ''),
         backImageBase64: backImage.replace(/^data:image\/\w+;base64,/, '')
       };
 
-      console.log('Payload prepared (base64 lengths):', {
-        front: payload.frontImageBase64.length,
-        back: payload.backImageBase64.length
+      const response = await fetch('/api/scan-id-card', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
       });
 
-      console.log('Invoking Edge Function: scan-id-card');
-      const { data, error } = await supabase.functions.invoke('scan-id-card', {
-        body: payload
-      });
+      const data = await response.json();
 
-      if (error) {
-        console.error('--- Edge Function Error ---');
-        console.error('Error object:', error);
-        console.error('Status:', error.status);
-        console.error('Message:', error.message);
-
-        if (error.message?.includes('failed to fetch')) {
-          toast.error('Erreur de connexion : Impossible de joindre le serveur Supabase');
-        } else {
-          toast.error(`Erreur d'analyse (Code: ${error.status || '500'})`);
-        }
+      if (!response.ok || !data?.success || !data?.data) {
+        toast.error(data?.error || 'Erreur lors de l\'analyse des images par l\'IA');
         return null;
       }
-
-      console.log('--- Edge Function Result ---');
-      console.log('Data received:', data);
-
-      if (!data?.success || !data?.data) {
-        console.error('Success field is false or data is missing');
-        toast.error(data?.error || 'Intelligence artificielle : Erreur d\'analyse des images');
-        return null;
-      }
-
-      console.log('Successfully received data from AI:', data.data);
 
       const idCardData = data.data as IDCardData;
       setExtractedData(idCardData);
-      toast.success('Informations extraites avec succès');
+      toast.success('Informations extraites avec succes !');
       return idCardData;
     } catch (error) {
       console.error('Error extracting ID card data:', error);
-      toast.error('Erreur lors de l\'extraction des données');
+      toast.error('Erreur lors de l\'extraction des donnees');
       return null;
     } finally {
       setProcessing(false);
