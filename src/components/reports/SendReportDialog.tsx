@@ -13,9 +13,9 @@ export function SendReportDialog() {
   const { sendReportNow, isLoading } = useScheduledReports();
   const { sites } = useSites();
   const [isOpen, setIsOpen] = useState(false);
-  
+
   const [formData, setFormData] = useState({
-    siteId: '',
+    siteId: 'all',
     format: 'pdf' as 'pdf' | 'csv' | 'excel',
     dateFrom: format(subDays(new Date(), 7), 'yyyy-MM-dd'),
     dateTo: format(new Date(), 'yyyy-MM-dd'),
@@ -26,7 +26,7 @@ export function SendReportDialog() {
     e.preventDefault();
     try {
       await sendReportNow({
-        siteId: formData.siteId || undefined,
+        siteId: formData.siteId === 'all' ? undefined : formData.siteId,
         format: formData.format,
         dateFrom: formData.dateFrom,
         dateTo: formData.dateTo,
@@ -41,32 +41,32 @@ export function SendReportDialog() {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">
+        <Button variant="outline" className="glass-card border-primary/20 hover:bg-primary/5 rounded-xl h-12 px-6 font-black uppercase tracking-widest text-xs transition-all">
           <Send className="h-4 w-4 mr-2" />
           Envoyer maintenant
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="glass-card border-white/10 rounded-[32px] max-w-lg">
         <DialogHeader>
-          <DialogTitle>Envoyer un rapport par email</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-2xl font-black uppercase tracking-tight">Rapport Express</DialogTitle>
+          <DialogDescription className="text-muted-foreground italic">
             Le rapport sera généré et envoyé immédiatement à l'adresse indiquée.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6 mt-4">
           <div className="space-y-2">
-            <Label>Site (optionnel)</Label>
-            <Select 
-              value={formData.siteId} 
+            <Label className="text-xs font-black uppercase tracking-widest text-primary ml-1">Site concerné</Label>
+            <Select
+              value={formData.siteId}
               onValueChange={(value) => setFormData(prev => ({ ...prev, siteId: value }))}
             >
-              <SelectTrigger>
+              <SelectTrigger className="h-14 rounded-2xl bg-white/5 border-white/10 font-bold">
                 <SelectValue placeholder="Tous les sites" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">Tous les sites</SelectItem>
+              <SelectContent className="glass-card border-white/10 rounded-2xl">
+                <SelectItem value="all" className="font-bold">Tous les sites</SelectItem>
                 {sites?.map(site => (
-                  <SelectItem key={site.id} value={site.id}>
+                  <SelectItem key={site.id} value={site.id} className="font-bold">
                     {site.name}
                   </SelectItem>
                 ))}
@@ -97,9 +97,9 @@ export function SendReportDialog() {
 
           <div className="space-y-2">
             <Label>Format</Label>
-            <Select 
-              value={formData.format} 
-              onValueChange={(value: 'pdf' | 'csv' | 'excel') => 
+            <Select
+              value={formData.format}
+              onValueChange={(value: 'pdf' | 'csv' | 'excel') =>
                 setFormData(prev => ({ ...prev, format: value }))
               }
             >
@@ -126,8 +126,8 @@ export function SendReportDialog() {
           </div>
 
           <DialogFooter>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={isLoading || !formData.email}
             >
               {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}

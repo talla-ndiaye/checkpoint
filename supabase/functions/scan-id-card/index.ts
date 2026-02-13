@@ -91,6 +91,16 @@ Deno.serve(async (req: Request) => {
             {
               text: `Analyze these two images (Front and Back) of a Senegal identity card.
               Extract these fields in JSON: firstName, lastName, idCardNumber, birthDate, gender, nationality, address, expiryDate.
+              
+              CRITICAL INSTRUCTIONS:
+              1. "idCardNumber" MUST be the National Identification Number (NIN). 
+                 - It usually looks like "1 752 1990 01234" (approx 13-14 digits).
+                 - It is labeled "Identification Nationale" or "NIN".
+                 - On the new ECOWAS card, the NIN is often on the BACK (Verso).
+                 - DO NOT use the "N° de la carte" found on the top-left of the ECOWAS card (e.g. 1 01 2001...). That is NOT the ID number.
+              2. "Address" might be labeled "Adresse" or "Adresse du domicile".
+              3. "Gender" is 'M' or 'F'.
+              
               If a field cannot be read, set it to null. Respond ONLY with valid JSON.`
             },
             { inlineData: { mimeType: "image/jpeg", data: frontImageBase64 } },

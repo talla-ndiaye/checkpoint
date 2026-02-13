@@ -23,16 +23,18 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Create admin client for all operations
     const adminClient = createClient(supabaseUrl, supabaseServiceKey)
     
     // Verify the JWT token using admin client
     const token = authHeader.replace('Bearer ', '')
+    console.log('Verifying token, prefix:', token.substring(0, 10))
+    
     const { data: userData, error: userError } = await adminClient.auth.getUser(token)
     
     if (userError || !userData?.user) {
-      console.error('Auth verify error:', userError?.message || 'No user found', 'Token prefix:', token.substring(0, 10))
-      return new Response(JSON.stringify({ error: 'Non autorisé - Token invalide' }), {
+      console.error('Auth verify error detail:', userError)
+      console.error('User data:', userData)
+      return new Response(JSON.stringify({ error: 'Non autorisé - Token invalide', details: userError?.message }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })

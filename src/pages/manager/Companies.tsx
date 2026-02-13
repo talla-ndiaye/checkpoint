@@ -3,14 +3,33 @@ import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCompanies, Company, CreateCompanyData } from '@/hooks/useCompanies';
 import { CompaniesTable } from '@/components/companies/CompaniesTable';
 import { CompanyFormDialog } from '@/components/companies/CompanyFormDialog';
 import { DeleteCompanyDialog } from '@/components/companies/DeleteCompanyDialog';
-import { Plus, Search, Briefcase, Loader2 } from 'lucide-react';
+import { Plus, Search, Briefcase, Loader2, Building2, Users, Shield } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useEffect } from 'react';
+
+export function StatCardMinimal({ title, value, icon: Icon, variant = 'primary' }: { title: string, value: string | number, icon: any, variant?: 'primary' | 'accent' | 'success' }) {
+  const variants = {
+    primary: 'bg-primary/10 text-primary',
+    accent: 'bg-accent/10 text-accent',
+    success: 'bg-success/10 text-success'
+  };
+
+  return (
+    <div className="glass-card p-6 rounded-2xl flex items-center justify-between group hover:border-primary/30 transition-all duration-300">
+      <div>
+        <p className="text-sm font-medium text-muted-foreground mb-1">{title}</p>
+        <div className="text-3xl font-black tracking-tight">{value}</div>
+      </div>
+      <div className={`p-4 rounded-xl ${variants[variant]} group-hover:scale-110 transition-transform shadow-inner`}>
+        <Icon className="h-6 w-6" />
+      </div>
+    </div>
+  );
+}
 
 export default function CompaniesPage() {
   const navigate = useNavigate();
@@ -68,81 +87,77 @@ export default function CompaniesPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Gestion des Entreprises</h1>
-            <p className="text-muted-foreground">
-              Gérez les entreprises de votre site
-            </p>
+      <div className="space-y-8 animate-fade-in">
+        {/* Unified Page Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-center gap-5">
+            <div className="h-16 w-16 rounded-3xl bg-primary/10 flex items-center justify-center shadow-inner">
+              <Building2 className="h-8 w-8 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-4xl font-black tracking-tight gradient-text">Gestion des Entreprises</h1>
+              <p className="text-muted-foreground mt-1 text-lg italic">
+                Administrez les entreprises partenaires de votre site
+              </p>
+            </div>
           </div>
-          <Button onClick={handleCreate} className="gap-2">
-            <Plus className="h-4 w-4" />
+          <Button onClick={handleCreate} className="h-14 px-8 rounded-2xl gap-3 font-black text-lg shadow-glow hover:scale-[1.02] transition-all">
+            <Plus className="h-6 w-6" />
             Nouvelle entreprise
           </Button>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total des entreprises</CardTitle>
-              <Briefcase className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{companies.length}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avec administrateur</CardTitle>
-              <Briefcase className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {companies.filter((c) => c.admin_id).length}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total employés</CardTitle>
-              <Briefcase className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {companies.reduce((acc, c) => acc + (c.employee_count || 0), 0)}
-              </div>
-            </CardContent>
-          </Card>
+        {/* Stats Section with staggered animation */}
+        <div className="grid gap-6 md:grid-cols-3">
+          <div className="animate-slide-up" style={{ animationDelay: '0ms' }}>
+            <StatCardMinimal
+              title="Total des entreprises"
+              value={companies.length}
+              icon={Briefcase}
+            />
+          </div>
+          <div className="animate-slide-up" style={{ animationDelay: '100ms' }}>
+            <StatCardMinimal
+              title="Avec administrateur"
+              value={companies.filter((c) => c.admin_id).length}
+              icon={Shield}
+              variant="accent"
+            />
+          </div>
+          <div className="animate-slide-up" style={{ animationDelay: '200ms' }}>
+            <StatCardMinimal
+              title="Total employés"
+              value={companies.reduce((acc, c) => acc + (c.employee_count || 0), 0)}
+              icon={Users}
+              variant="success"
+            />
+          </div>
         </div>
 
-        {/* Companies Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Liste des entreprises</CardTitle>
-            <CardDescription>
-              Toutes les entreprises enregistrées
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {/* Search */}
-            <div className="mb-4">
-              <div className="relative max-w-sm">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Rechercher une entreprise..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+        {/* Main Content Area */}
+        <div className="glass-card rounded-3xl overflow-hidden animate-slide-up" style={{ animationDelay: '300ms' }}>
+          <div className="p-8 border-b border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div>
+              <h3 className="text-2xl font-black tracking-tight">Liste des entreprises</h3>
+              <p className="text-sm text-muted-foreground mt-1">Gérez les accès et les paramètres de chaque entité</p>
             </div>
 
+            <div className="relative w-full md:w-96 group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <Input
+                placeholder="Rechercher une entreprise..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-12 h-14 rounded-2xl bg-white/5 border-white/10 focus:border-primary/50 transition-all font-medium"
+              />
+            </div>
+          </div>
+
+          <div className="p-2">
             {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <div className="flex flex-col items-center justify-center py-24 gap-4">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                <p className="text-muted-foreground font-black animate-pulse">CHARGEMENT...</p>
               </div>
             ) : (
               <CompaniesTable
@@ -152,8 +167,8 @@ export default function CompaniesPage() {
                 onViewEmployees={handleViewEmployees}
               />
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       {/* Dialogs */}

@@ -45,9 +45,9 @@ function parseTD1MRZ(lines: string[]): ExtractedIDData | null {
   const line2 = cleanMRZ(lines[1]);
   const line3 = cleanMRZ(lines[2]);
 
-  console.log('[v0] MRZ cleaned line1:', line1);
-  console.log('[v0] MRZ cleaned line2:', line2);
-  console.log('[v0] MRZ cleaned line3:', line3);
+  console.log('[v1] MRZ cleaned line1:', line1);
+  console.log('[v1] MRZ cleaned line2:', line2);
+  console.log('[v1] MRZ cleaned line3:', line3);
 
   // Validate minimum lengths
   if (line1.length < 20 || line2.length < 15 || line3.length < 5) return null;
@@ -126,11 +126,18 @@ function extractNINFromVerso(ocrText: string): string | null {
   // Look for NIN label followed by number
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
+    
     // Match "NIN" followed by digits with spaces
-    const ninMatch = line.match(/NIN\s+([\d\s]+)/i);
+    // e.g. "NIN 1 752 2001 01604" or "N° d'Identification Nationale 1 752..."
+    const ninMatch = line.match(/(?:NIN|Identification\s*Nationale)\s*[:;,.\-]?\s*([\d\s]+)/i);
     if (ninMatch && ninMatch[1]) {
       const nin = ninMatch[1].replace(/\s+/g, ' ').trim();
-      if (nin.length >= 5) return nin;
+      // Basic validation: NIN usually starts with 1 or 2 and is around 13-14 digits long
+      // E.g. 1 752 2001 01604 -> 13 digits
+      const digitsOnly = nin.replace(/\s/g, '');
+      if (digitsOnly.length >= 10 && (digitsOnly.startsWith('1') || digitsOnly.startsWith('2'))) {
+         return nin;
+      }
     }
   }
 
@@ -142,7 +149,7 @@ function extractNINFromVerso(ocrText: string): string | null {
  * Handles both CEDEAO and old CNI formats.
  *
  * CEDEAO recto fields:
- *   N de la carte d'identite: 1 01 2001 0920 00073 0
+ *   N de la carte d'identite: 1 01 2001 0920 00073 0  <-- TO IGNORE FOR IDENTIFICATION IF POSSIBLE
  *   Prenoms: TALLA
  *   Nom: NDIAYE
  *   Date de naissance: 20/09/2001
@@ -155,17 +162,17 @@ function extractNINFromVerso(ocrText: string): string | null {
  *   Prenoms: TALLA
  *   Nom: NDIAYE
  *   Date de naissance: 20/09/2001
- *   N d'Identification Nationale: 1 752 2001 01604
+ *   N d'Identification Nationale: 1 752 2001 01604  <-- THIS IS THE NIN WE WANT
  *   Adresse: 551 HAMO 3 GUEDIAWAYE
  */
 function parseRectoOCR(ocrText: string): Partial<ExtractedIDData> {
   const result: Partial<ExtractedIDData> = {};
   const lines = ocrText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
 
-  console.log('[v0] Recto OCR lines:', lines);
+  console.log('[v1] Recto OCR lines:', lines);
 
   // Helper: given a label, find the VALUE on same line after label or on the next line
-  const findValue = (labelRegex: RegExp): string | null => {
+  const findValue = (labelRegex: RegExp, multiline: boolean = false): string | null => {
     for (let i = 0; i < lines.length; i++) {
       const match = lines[i].match(labelRegex);
       if (match) {
@@ -176,7 +183,7 @@ function parseRectoOCR(ocrText: string): Partial<ExtractedIDData> {
         // Otherwise check next line
         if (i + 1 < lines.length) {
           const nextLine = lines[i + 1].trim();
-          // Skip if next line is another label
+          // Skip if next line is another label (unless we are lenient)
           if (nextLine.length > 0 && !isLabel(nextLine)) {
             return nextLine;
           }
@@ -228,25 +235,52 @@ function parseRectoOCR(ocrText: string): Partial<ExtractedIDData> {
   const genderMatch = ocrText.match(/sexe\s*[:;,.\-]?\s*([MFmf])/i);
   if (genderMatch) {
     result.gender = genderMatch[1].toUpperCase();
+  } else {
+    // Fallback: look for "Sexe" on one line and "M" or "F" on the next
+    for(let i=0; i<lines.length; i++) {
+      if (/sexe/i.test(lines[i])) {
+        // Check same line again
+        const m = lines[i].match(/\b([MF])\b/i);
+        if(m) { result.gender = m[1].toUpperCase(); break; }
+        // Check next line
+        if(i+1 < lines.length) {
+            const next = lines[i+1].trim();
+            if(next === 'M' || next === 'F') { result.gender = next; break; }
+        }
+      }
+    }
   }
 
   // --- ID Card Number / NIN ---
-  // CEDEAO format: "N° de la carte d'identité" followed by number string
-  // Old CNI format: "N° d'Identification Nationale" or just the number at bottom
-  const idPatterns = [
-    // CEDEAO: N de la carte d'identite
-    /n[°o\s]*\s*de\s*la\s*carte\s*d['']?identit[eé]\s*[:;,.\-]?\s*([\d\s]+)/i,
-    // Old CNI: N d'Identification Nationale
-    /n[°o\s]*\s*d['']?identification\s*nationale\s*[:;,.\-]?\s*([\d\s]+)/i,
-    /identification\s*nationale\s*[:;,.\-]?\s*([\d\s]+)/i,
-  ];
+  // Strategy:
+  // 1. Look specifically for "N d'Identification Nationale" (Old CNI) - High Priority
+  // 2. Look for "N° de la carte" (ECOWAS) - Low Priority (likely not the NIN)
+  
+  let foundNIN = null;
+  let foundCardNum = null;
 
-  for (const pattern of idPatterns) {
-    const match = ocrText.match(pattern);
-    if (match && match[1]?.trim()) {
-      result.idCardNumber = match[1].replace(/\s+/g, ' ').trim();
-      break;
-    }
+  // Pattern for Old CNI: "N° d'Identification Nationale"
+  const oldCniPattern = /identification\s*nationale\s*[:;,.\-]?\s*([\d\s]+)/i;
+  const oldCniMatch = ocrText.match(oldCniPattern);
+  if (oldCniMatch && oldCniMatch[1]) {
+      foundNIN = oldCniMatch[1].replace(/\s+/g, ' ').trim();
+  }
+
+  // Pattern for ECOWAS CNI: "N° de la carte..."
+  const ecowasPattern = /n[°o\s]*\s*de\s*la\s*carte\s*d['']?identit[eé]\s*[:;,.\-]?\s*([\d\s]+)/i;
+  const ecowasMatch = ocrText.match(ecowasPattern);
+  if (ecowasMatch && ecowasMatch[1]) {
+      foundCardNum = ecowasMatch[1].replace(/\s+/g, ' ').trim();
+  }
+
+  // Store what we found. Main function will decide precedence (Verso NIN > Old Recto NIN > ECOWAS Card Num)
+  // For now, if we found a clear "Identification Nationale", it's the winner.
+  if (foundNIN) {
+      result.idCardNumber = foundNIN;
+  } else if (foundCardNum) {
+      // We store it, but knowing it might be the card number (ECOWAS top) which is NOT the NIN
+      // The caller will prefer Verso NIN if available.
+      result.idCardNumber = foundCardNum; 
   }
 
   // --- Expiry Date ---
@@ -256,6 +290,7 @@ function parseRectoOCR(ocrText: string): Partial<ExtractedIDData> {
   }
 
   // --- Address ---
+  // Covers "Adresse" and "Adresse du domicile"
   const addressValue = findValue(/adresse(?:\s*du\s*domicile)?\s*[:;,.\-]?\s*(.*)$/i);
   if (addressValue && addressValue.length > 2 && !isLabel(addressValue)) {
     result.address = addressValue.toUpperCase();
@@ -270,8 +305,12 @@ function parseRectoOCR(ocrText: string): Partial<ExtractedIDData> {
  *
  * Strategy:
  * - MRZ (verso) is most reliable for: firstName, lastName, birthDate, gender, expiryDate
- * - Recto OCR is best for: idCardNumber (NIN / N de la carte), address
- * - NIN on verso (if present) is used as fallback for idCardNumber
+ * - Recto OCR is best for: address
+ * - NIN Logic:
+ *    1. Check Verso for explicit "NIN" label (Best for ECOWAS)
+ *    2. Check Recto for "Identification Nationale" (Best for Old CNI)
+ *    3. Fallback to MRZ document number (less preferred as it might match card no)
+ *    4. Last resort: Recto "N de la carte" (ECOWAS specific number, not NIN)
  */
 export async function extractIDCardDataFromImages(
   frontImageDataUrl: string,
@@ -303,46 +342,61 @@ export async function extractIDCardDataFromImages(
   const frontText = frontResult.data.text;
   const backText = backResult.data.text;
 
-  console.log('[v0] ===== FRONT OCR TEXT =====');
-  console.log('[v0]', frontText);
-  console.log('[v0] ===== BACK OCR TEXT =====');
-  console.log('[v0]', backText);
+  console.log('[v1] ===== FRONT OCR TEXT =====');
+  console.log('[v1]', frontText);
+  console.log('[v1] ===== BACK OCR TEXT =====');
+  console.log('[v1]', backText);
 
   // --- Parse MRZ from back ---
   const mrzLines = findMRZLines(backText);
   let mrzData: ExtractedIDData | null = null;
   if (mrzLines) {
-    console.log('[v0] MRZ lines detected:', mrzLines);
+    console.log('[v1] MRZ lines detected:', mrzLines);
     mrzData = parseTD1MRZ(mrzLines);
-    console.log('[v0] MRZ parsed:', mrzData);
+    console.log('[v1] MRZ parsed:', mrzData);
   } else {
-    console.log('[v0] No MRZ lines found in verso');
+    console.log('[v1] No MRZ lines found in verso');
   }
 
   // --- Extract NIN from verso ---
   const versoNIN = extractNINFromVerso(backText);
-  console.log('[v0] Verso NIN:', versoNIN);
+  console.log('[v1] Verso NIN:', versoNIN);
 
   // --- Parse recto ---
   const rectoData = parseRectoOCR(frontText);
-  console.log('[v0] Recto parsed:', rectoData);
+  console.log('[v1] Recto parsed:', rectoData);
 
   onProgress?.(100, 'Termine !');
 
-  // Merge: MRZ for structured fields, recto for address and NIN
+  // MERGE LOGIC
+  // Determine IDs
+  // For ECOWAS: Recto has "N Carte" (bad), Verso has "NIN" (good).
+  // For Old: Recto has "N Identification" (good).
+  
+  // If recto specifically found an ID labeled "Identification Nationale", trust it.
+  const isRectoOldNIN = rectoData.idCardNumber && !rectoData.idCardNumber.startsWith('1 01'); // Crude heuristic, 1 01 usually start of eco card num
+  
+  let finalID = '';
+  if (versoNIN) {
+      finalID = versoNIN;
+  } else if (isRectoOldNIN && rectoData.idCardNumber) {
+     finalID = rectoData.idCardNumber;
+  } else if (rectoData.idCardNumber) {
+     finalID = rectoData.idCardNumber; // Fallback to whatever recto found
+  }
+
   const merged: ExtractedIDData = {
     firstName: mrzData?.firstName || rectoData.firstName || '',
     lastName: mrzData?.lastName || rectoData.lastName || '',
-    // NIN priority: recto labeled field > verso NIN > MRZ doc number
-    idCardNumber: rectoData.idCardNumber || versoNIN || mrzData?.idCardNumber || '',
+    idCardNumber: finalID,
     birthDate: mrzData?.birthDate || rectoData.birthDate || null,
-    gender: mrzData?.gender || rectoData.gender || null,
+    gender: mrzData?.gender || rectoData.gender || null, // MRZ gender is usually very reliable
     nationality: mrzData?.nationality || 'SEN',
     address: rectoData.address || null,
     expiryDate: mrzData?.expiryDate || rectoData.expiryDate || null,
   };
 
-  console.log('[v0] Final merged result:', merged);
+  console.log('[v1] Final merged result:', merged);
 
   return merged;
 }

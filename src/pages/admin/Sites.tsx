@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useSites, Site, CreateSiteData } from '@/hooks/useSites';
 import { SitesTable } from '@/components/sites/SitesTable';
 import { SiteFormDialog } from '@/components/sites/SiteFormDialog';
 import { DeleteSiteDialog } from '@/components/sites/DeleteSiteDialog';
-import { Plus, Search, Building2, Loader2 } from 'lucide-react';
+import { Plus, Search, Building2, Loader2, MapPin, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { StatCardMinimal } from '../manager/Companies';
 
 export default function SitesPage() {
   const { sites, loading, createSite, updateSite, deleteSite } = useSites();
@@ -53,81 +53,77 @@ export default function SitesPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Gestion des Sites</h1>
-            <p className="text-muted-foreground">
-              Gérez tous les sites (bâtiments) de votre organisation
-            </p>
+      <div className="space-y-8 animate-fade-in">
+        {/* Unified Page Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-center gap-5">
+            <div className="h-16 w-16 rounded-3xl bg-primary/10 flex items-center justify-center shadow-inner">
+              <MapPin className="h-8 w-8 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-4xl font-black tracking-tight gradient-text">Gestion des Sites</h1>
+              <p className="text-muted-foreground mt-1 text-lg italic">
+                Administrez tous les périmètres de sécurité de votre organisation
+              </p>
+            </div>
           </div>
-          <Button onClick={handleCreate} className="gap-2">
-            <Plus className="h-4 w-4" />
+          <Button onClick={handleCreate} className="h-14 px-8 rounded-2xl gap-3 font-black text-lg shadow-glow hover:scale-[1.02] transition-all">
+            <Plus className="h-6 w-6" />
             Nouveau site
           </Button>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total des sites</CardTitle>
-              <Building2 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{sites.length}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avec gestionnaire</CardTitle>
-              <Building2 className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {sites.filter((s) => s.manager_id).length}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Sans gestionnaire</CardTitle>
-              <Building2 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {sites.filter((s) => !s.manager_id).length}
-              </div>
-            </CardContent>
-          </Card>
+        {/* Stats Cards with staggered animation */}
+        <div className="grid gap-6 md:grid-cols-3">
+          <div className="animate-slide-up" style={{ animationDelay: '0ms' }}>
+            <StatCardMinimal
+              title="Total des sites"
+              value={sites.length}
+              icon={Building2}
+            />
+          </div>
+          <div className="animate-slide-up" style={{ animationDelay: '100ms' }}>
+            <StatCardMinimal
+              title="Avec gestionnaire"
+              value={sites.filter((s) => s.manager_id).length}
+              icon={ShieldCheck}
+              variant="success"
+            />
+          </div>
+          <div className="animate-slide-up" style={{ animationDelay: '200ms' }}>
+            <StatCardMinimal
+              title="Sans gestionnaire"
+              value={sites.filter((s) => !s.manager_id).length}
+              icon={ShieldAlert}
+              variant="accent"
+            />
+          </div>
         </div>
 
-        {/* Sites Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Liste des sites</CardTitle>
-            <CardDescription>
-              Tous les sites enregistrés dans le système
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {/* Search */}
-            <div className="mb-4">
-              <div className="relative max-w-sm">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Rechercher un site..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+        {/* Search & Main Content Area */}
+        <div className="glass-card rounded-3xl overflow-hidden animate-slide-up" style={{ animationDelay: '300ms' }}>
+          <div className="p-8 border-b border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div>
+              <h3 className="text-2xl font-black tracking-tight">Liste des sites décrits</h3>
+              <p className="text-sm text-muted-foreground mt-1">Configurez les gestionnaires et les adresses pour chaque site</p>
             </div>
 
+            <div className="relative w-full md:w-96 group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <Input
+                placeholder="Rechercher par nom ou adresse..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-12 h-14 rounded-2xl bg-white/5 border-white/10 focus:border-primary/50 transition-all font-medium"
+              />
+            </div>
+          </div>
+
+          <div className="p-2">
             {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <div className="flex flex-col items-center justify-center py-24 gap-4">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                <p className="text-muted-foreground font-black animate-pulse">SYNCHRONISATION...</p>
               </div>
             ) : (
               <SitesTable
@@ -136,8 +132,8 @@ export default function SitesPage() {
                 onDelete={handleDelete}
               />
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       {/* Dialogs */}

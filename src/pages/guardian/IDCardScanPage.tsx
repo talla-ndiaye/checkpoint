@@ -7,27 +7,25 @@ import { IDCardScanPanel } from '@/components/guardian/IDCardScanPanel';
 
 export default function IDCardScanPage() {
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
-
-  useEffect(() => {
-    if (!loading && !user) {
-      navigate('/auth');
-    }
-  }, [user, loading, navigate]);
 
   return (
     <DashboardLayout>
-      <div className="max-w-2xl mx-auto space-y-6">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-foreground flex items-center justify-center gap-2">
-            <CreditCard className="h-7 w-7 text-primary" />
+      <div className="max-w-3xl mx-auto space-y-8 animate-fade-in">
+        <div className="text-center space-y-2">
+          <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-primary/10 mb-2 animate-bounce-in">
+            <CreditCard className="h-8 w-8 text-primary" />
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
             Scanner CNI
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-muted-foreground">
             Scannez ou importez une carte d'identité pour enregistrer un visiteur
           </p>
         </div>
-        <IDCardScanPanel />
+
+        <div className="rounded-3xl p-1 shadow-2xl overflow-hidden animate-slide-up">
+          <IDCardScanPanel />
+        </div>
       </div>
     </DashboardLayout>
   );

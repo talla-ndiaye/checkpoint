@@ -26,11 +26,6 @@ export default function Dashboard() {
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
   const { data: recentLogs, isLoading: activityLoading } = useRecentActivity(5);
 
-  useEffect(() => {
-    if (!loading && !user) {
-      navigate('/auth');
-    }
-  }, [user, loading, navigate]);
 
   // Transform recent logs to activity format
   const activities = (recentLogs || []).map(log => ({
@@ -120,7 +115,7 @@ export default function Dashboard() {
             </div>
 
             {/* Quick Actions */}
-            <div className="glass-card rounded-xl p-6">
+            <div className="bg-card border border-border shadow-sm rounded-xl p-6">
               <h3 className="text-lg font-semibold mb-4">{t('dashboard.quick_actions')}</h3>
               <div className="grid gap-4 md:grid-cols-3">
                 <button

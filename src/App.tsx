@@ -24,8 +24,13 @@ import ScanPage from "./pages/guardian/ScanPage";
 import IDCardScanPage from "./pages/guardian/IDCardScanPage";
 import BulkExitPage from "./pages/guardian/BulkExitPage";
 import Analytics from "./pages/Analytics";
+import AdminSettings from "./pages/admin/Settings";
+import KioskRegistration from "./pages/KioskRegistration";
 import PublicInvitation from "./pages/public/PublicInvitation";
+import Contact from "./pages/Contact";
+import ContactMessages from "./pages/admin/ContactMessages";
 import NotFound from "./pages/NotFound";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -37,30 +42,48 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
+            {/* Public routes */}
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/admin/sites" element={<Sites />} />
-            <Route path="/admin/managers" element={<Managers />} />
-            <Route path="/manager/companies" element={<Companies />} />
-            <Route path="/manager/companies/:companyId/employees" element={<ManagerEmployees />} />
-            <Route path="/manager/employees" element={<ManagerEmployees />} />
-            <Route path="/manager/guardians" element={<Guardians />} />
-            <Route path="/manager/company-admins" element={<CompanyAdmins />} />
-            <Route path="/employees" element={<CompanyAdminEmployees />} />
-            <Route path="/invitations" element={<Invitations />} />
-            <Route path="/invitation/:id" element={<InvitationDetails />} />
-            <Route path="/my-qr" element={<MyQRCode />} />
-            <Route path="/access-history" element={<AccessHistory />} />
-            <Route path="/access-history/:id" element={<AccessLogDetails />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/scan" element={<ScanPage />} />
-            <Route path="/scan/id-card" element={<IDCardScanPage />} />
-            <Route path="/scan/bulk-exit" element={<BulkExitPage />} />
-            <Route path="/analytics" element={<Analytics />} />
-            {/* Public routes (no auth required) */}
+            <Route path="/contact" element={<Contact />} />
             <Route path="/i/:code" element={<PublicInvitation />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+
+            {/* General Protected Routes */}
+            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/access-history" element={<ProtectedRoute><AccessHistory /></ProtectedRoute>} />
+            <Route path="/access-history/:id" element={<ProtectedRoute><AccessLogDetails /></ProtectedRoute>} />
+            <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
+            <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+
+            {/* Admin Routes */}
+            <Route path="/admin/sites" element={<ProtectedRoute allowedRoles={['super_admin']}><Sites /></ProtectedRoute>} />
+            <Route path="/admin/managers" element={<ProtectedRoute allowedRoles={['super_admin']}><Managers /></ProtectedRoute>} />
+            <Route path="/admin/messages" element={<ProtectedRoute allowedRoles={['super_admin']}><ContactMessages /></ProtectedRoute>} />
+            <Route path="/admin/settings" element={<ProtectedRoute allowedRoles={['super_admin']}><AdminSettings /></ProtectedRoute>} />
+
+            {/* Manager Routes */}
+            <Route path="/manager/companies" element={<ProtectedRoute allowedRoles={['manager']}><Companies /></ProtectedRoute>} />
+            <Route path="/manager/companies/:companyId/employees" element={<ProtectedRoute allowedRoles={['manager']}><ManagerEmployees /></ProtectedRoute>} />
+            <Route path="/manager/employees" element={<ProtectedRoute allowedRoles={['manager']}><ManagerEmployees /></ProtectedRoute>} />
+            <Route path="/manager/guardians" element={<ProtectedRoute allowedRoles={['manager']}><Guardians /></ProtectedRoute>} />
+            <Route path="/manager/company-admins" element={<ProtectedRoute allowedRoles={['manager']}><CompanyAdmins /></ProtectedRoute>} />
+
+            {/* Company Admin Routes */}
+            <Route path="/employees" element={<ProtectedRoute allowedRoles={['company_admin']}><CompanyAdminEmployees /></ProtectedRoute>} />
+
+            {/* Employee Routes */}
+            <Route path="/invitations" element={<ProtectedRoute allowedRoles={['employee']}><Invitations /></ProtectedRoute>} />
+            <Route path="/invitation/:id" element={<ProtectedRoute allowedRoles={['employee']}><InvitationDetails /></ProtectedRoute>} />
+            <Route path="/my-qr" element={<ProtectedRoute allowedRoles={['employee']}><MyQRCode /></ProtectedRoute>} />
+
+            {/* Guardian Routes */}
+            <Route path="/scan" element={<ProtectedRoute allowedRoles={['guardian']}><ScanPage /></ProtectedRoute>} />
+            <Route path="/scan/id-card" element={<ProtectedRoute allowedRoles={['guardian']}><IDCardScanPage /></ProtectedRoute>} />
+            <Route path="/scan/bulk-exit" element={<ProtectedRoute allowedRoles={['guardian']}><BulkExitPage /></ProtectedRoute>} />
+
+            {/* Misc */}
+            <Route path="/kiosk" element={<KioskRegistration />} />
+
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

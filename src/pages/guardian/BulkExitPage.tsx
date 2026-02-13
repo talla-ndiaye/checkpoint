@@ -1,13 +1,10 @@
 import { useState, useCallback } from 'react';
 import { Scanner, IDetectedBarcode } from '@yudiel/react-qr-scanner';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import {
-  QrCode,
   LogOut,
   Plus,
   Trash2,
@@ -15,6 +12,8 @@ import {
   Loader2,
   Camera,
   Keyboard,
+  Users,
+  AlertTriangle,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
@@ -37,12 +36,6 @@ export default function BulkExitPage() {
   const [loadingCode, setLoadingCode] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [inputMode, setInputMode] = useState<'camera' | 'manual'>('manual');
-
-  useEffect(() => {
-    if (!loading && !user) {
-      navigate('/auth');
-    }
-  }, [user, loading, navigate]);
 
   const addReceiptByCode = async (code: string) => {
     const cleanCode = code.toUpperCase().trim();
@@ -151,127 +144,199 @@ export default function BulkExitPage() {
     setProcessing(false);
   };
 
+  const validCount = receipts.filter(r => !r.alreadyValidated).length;
+
   return (
     <DashboardLayout>
-      <div className="max-w-2xl mx-auto space-y-6">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-foreground flex items-center justify-center gap-2">
-            <LogOut className="h-7 w-7 text-primary" />
+      <div className="max-w-xl mx-auto space-y-8 animate-fade-in">
+        {/* Header */}
+        <div className="text-center space-y-2">
+          <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-warning/10 mb-2">
+            <LogOut className="h-8 w-8 text-warning" />
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
             Sorties groupées
           </h1>
-          <p className="text-muted-foreground mt-1">
-            Scannez ou saisissez plusieurs codes de reçu pour valider les sorties
+          <p className="text-muted-foreground">
+            Scannez ou saisissez plusieurs codes pour valider les sorties en lot
           </p>
         </div>
 
-        {/* Mode toggle */}
-        <div className="flex justify-center gap-2">
-          <Button
-            variant={inputMode === 'camera' ? 'default' : 'outline'}
+        {/* Mode Toggle - Animated */}
+        <div className="mode-toggle sticky top-0 z-10 mx-4 md:mx-0">
+          <div
+            className="mode-toggle-indicator w-1/2"
+            style={{ left: inputMode === 'camera' ? '6px' : 'calc(50% - 0px)' }}
+          />
+          <button
             onClick={() => setInputMode('camera')}
-            className="gap-2"
+            className={`mode-toggle-btn ${inputMode === 'camera' ? 'text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
           >
             <Camera className="h-4 w-4" />
             Scanner QR
-          </Button>
-          <Button
-            variant={inputMode === 'manual' ? 'default' : 'outline'}
+          </button>
+          <button
             onClick={() => setInputMode('manual')}
-            className="gap-2"
+            className={`mode-toggle-btn ${inputMode === 'manual' ? 'text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
           >
             <Keyboard className="h-4 w-4" />
             Saisie manuelle
-          </Button>
+          </button>
         </div>
 
-        {/* QR Scanner */}
+        {/* QR Scanner with overlay */}
         {inputMode === 'camera' && (
-          <Card>
-            <CardContent className="p-0 overflow-hidden rounded-lg">
-              <div className="aspect-square max-h-[300px]">
-                <Scanner
-                  onScan={handleScan}
-                  formats={['qr_code']}
-                  allowMultiple={true}
-                  scanDelay={1000}
-                  components={{ torch: true }}
-                  styles={{
-                    container: { height: '100%' },
-                    video: { objectFit: 'cover' }
-                  }}
-                />
+          <div className="relative rounded-3xl overflow-hidden shadow-2xl ring-4 ring-black/5 bg-black aspect-square max-w-sm mx-auto animate-scale-in">
+            <Scanner
+              onScan={handleScan}
+              formats={['qr_code']}
+              allowMultiple={true}
+              scanDelay={1000}
+              components={{ torch: true }}
+              styles={{
+                container: { height: '100%' },
+                video: { objectFit: 'cover' }
+              }}
+            />
+            {/* Scanner Overlay */}
+            <div className="absolute inset-0 pointer-events-none">
+              <div className="absolute inset-0 border-[30px] border-black/40" />
+              <div className="absolute inset-8 border-2 border-white/30 rounded-2xl">
+                <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-warning rounded-tl-xl" />
+                <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-warning rounded-tr-xl" />
+                <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-warning rounded-bl-xl" />
+                <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-warning rounded-br-xl" />
+                <div className="absolute top-0 left-0 right-0 h-0.5 bg-warning shadow-[0_0_20px_rgba(245,158,11,0.8)] animate-scan-beam" />
               </div>
-            </CardContent>
-          </Card>
+              <div className="absolute bottom-8 left-0 right-0 text-center">
+                <span className="bg-black/80 text-white/90 text-sm px-4 py-2 rounded-full">
+                  Scannez un reçu de sortie
+                </span>
+              </div>
+            </div>
+          </div>
         )}
 
-        {/* Manual input */}
+        {/* Manual input - Glass card */}
         {inputMode === 'manual' && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Saisir le code du reçu</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Code du reçu..."
-                  value={currentCode}
-                  onChange={(e) => setCurrentCode(e.target.value.toUpperCase())}
-                  onKeyDown={(e) => e.key === 'Enter' && addReceiptByCode(currentCode)}
-                  className="font-mono tracking-wider"
-                  maxLength={8}
-                />
-                <Button onClick={() => addReceiptByCode(currentCode)} disabled={loadingCode || !currentCode.trim()} size="icon">
-                  {loadingCode ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+          <div className="glass-card rounded-3xl p-8 max-w-sm mx-auto shadow-xl animate-scale-in">
+            <div className="space-y-4">
+              <div className="text-center">
+                <p className="text-sm font-medium text-muted-foreground">Code du reçu visiteur</p>
+              </div>
+              <div className="flex gap-3">
+                <div className="relative flex-1">
+                  <Input
+                    placeholder="ABC-123"
+                    value={currentCode}
+                    onChange={(e) => setCurrentCode(e.target.value.toUpperCase())}
+                    onKeyDown={(e) => e.key === 'Enter' && addReceiptByCode(currentCode)}
+                    className="text-center text-2xl tracking-[0.15em] font-mono h-14 uppercase bg-background border-2 focus:border-warning/50"
+                    maxLength={8}
+                  />
+                </div>
+                <Button
+                  onClick={() => addReceiptByCode(currentCode)}
+                  disabled={loadingCode || !currentCode.trim()}
+                  size="icon"
+                  className="h-14 w-14 rounded-xl bg-warning hover:bg-warning/90 transition-all shrink-0 shadow-md"
+                >
+                  {loadingCode ? <Loader2 className="h-5 w-5 animate-spin" /> : <Plus className="h-5 w-5" />}
                 </Button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
 
         {/* Receipt list */}
         {receipts.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Reçus à valider ({receipts.length})</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {receipts.map(receipt => (
+          <div className="space-y-4 animate-slide-up">
+            {/* List header */}
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-muted-foreground" />
+                <h3 className="text-lg font-bold">Reçus en attente</h3>
+                <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-primary/10 text-primary text-xs font-bold">
+                  {receipts.length}
+                </span>
+              </div>
+              {validCount > 0 && (
+                <span className="text-sm text-muted-foreground">
+                  {validCount} à valider
+                </span>
+              )}
+            </div>
+
+            {/* Receipt cards */}
+            <div className="space-y-2">
+              {receipts.map((receipt, index) => (
                 <div
                   key={receipt.code}
-                  className={`flex items-center justify-between p-3 rounded-lg border ${
-                    receipt.alreadyValidated
-                      ? 'bg-destructive/5 border-destructive/20'
-                      : 'bg-muted/50 border-border'
-                  }`}
+                  className={`receipt-card ${receipt.alreadyValidated ? 'receipt-card-invalid' : ''}`}
+                  style={{ animationDelay: `${index * 50}ms` }}
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="font-mono text-sm font-medium">{receipt.code}</span>
-                    <span className="text-sm">{receipt.visitorName}</span>
-                    {receipt.alreadyValidated && (
-                      <Badge variant="destructive" className="text-xs">Déjà validé</Badge>
-                    )}
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${receipt.alreadyValidated
+                      ? 'bg-destructive/10'
+                      : 'bg-warning/10'
+                      }`}>
+                      {receipt.alreadyValidated
+                        ? <AlertTriangle className="h-4 w-4 text-destructive" />
+                        : <LogOut className="h-4 w-4 text-warning" />
+                      }
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-sm font-bold tracking-wider">{receipt.code}</span>
+                        {receipt.alreadyValidated && (
+                          <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Déjà validé</Badge>
+                        )}
+                      </div>
+                      <span className="text-sm text-muted-foreground truncate block">{receipt.visitorName}</span>
+                    </div>
                   </div>
-                  <Button variant="ghost" size="icon" onClick={() => removeReceipt(receipt.code)}>
-                    <Trash2 className="h-4 w-4" />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeReceipt(receipt.code)}
+                    className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>
               ))}
+            </div>
 
-              <Button
-                className="w-full gap-2 mt-4"
-                onClick={validateAll}
-                disabled={processing || receipts.filter(r => !r.alreadyValidated).length === 0}
-              >
-                {processing ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <CheckCircle className="h-4 w-4" />
-                )}
-                Valider {receipts.filter(r => !r.alreadyValidated).length} sortie(s)
-              </Button>
-            </CardContent>
-          </Card>
+            {/* Validate button */}
+            <Button
+              size="lg"
+              className={`w-full h-16 text-lg font-bold gap-3 rounded-2xl transition-all ${validCount > 0
+                ? 'bg-warning hover:bg-warning/90 shadow-lg'
+                : ''
+                }`}
+              onClick={validateAll}
+              disabled={processing || validCount === 0}
+            >
+              {processing ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <CheckCircle className="h-5 w-5" />
+              )}
+              Valider {validCount} sortie{validCount > 1 ? 's' : ''}
+            </Button>
+          </div>
+        )}
+
+        {/* Empty state */}
+        {receipts.length === 0 && (
+          <div className="text-center py-8 animate-fade-in">
+            <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-muted/50 mb-4">
+              <LogOut className="h-7 w-7 text-muted-foreground/40" />
+            </div>
+            <p className="text-muted-foreground text-sm">
+              Scannez ou saisissez des codes de reçu pour commencer
+            </p>
+          </div>
         )}
       </div>
     </DashboardLayout>

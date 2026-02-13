@@ -139,6 +139,60 @@ export type Database = {
           },
         ]
       }
+      global_settings: {
+        Row: {
+          accent_color: string | null
+          default_language: string | null
+          geofencing_enabled: boolean | null
+          id: string
+          logo_url_dark: string | null
+          logo_url_light: string | null
+          mfa_required: boolean | null
+          org_name: string | null
+          primary_color: string | null
+          retention_months: number | null
+          session_timeout_hours: number | null
+          support_url: string | null
+          timezone: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          accent_color?: string | null
+          default_language?: string | null
+          geofencing_enabled?: boolean | null
+          id?: string
+          logo_url_dark?: string | null
+          logo_url_light?: string | null
+          mfa_required?: boolean | null
+          org_name?: string | null
+          primary_color?: string | null
+          retention_months?: number | null
+          session_timeout_hours?: number | null
+          support_url?: string | null
+          timezone?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          accent_color?: string | null
+          default_language?: string | null
+          geofencing_enabled?: boolean | null
+          id?: string
+          logo_url_dark?: string | null
+          logo_url_light?: string | null
+          mfa_required?: boolean | null
+          org_name?: string | null
+          primary_color?: string | null
+          retention_months?: number | null
+          session_timeout_hours?: number | null
+          support_url?: string | null
+          timezone?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       guardians: {
         Row: {
           created_at: string
@@ -420,14 +474,13 @@ export type Database = {
     }
     Functions: {
       generate_receipt_code: { Args: never; Returns: string }
-      generate_unique_code: { Args: never; Returns: string }
       get_company_site_id_for_user: {
         Args: { _user_id: string }
         Returns: string
       }
+      get_employee_company_id: { Args: { _user_id: string }; Returns: string }
       get_guardian_site_id: { Args: { _user_id: string }; Returns: string }
       get_manager_site_id: { Args: { _user_id: string }; Returns: string }
-      get_user_company_id: { Args: { _user_id: string }; Returns: string }
       get_user_site_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {

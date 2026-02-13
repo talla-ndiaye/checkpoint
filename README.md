@@ -66,6 +66,9 @@ Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and 
 
 ## Can I connect a custom domain to my Lovable project?
 
+npx supabase functions deploy scan-id-card --no-verify-jwt
+npx supabase functions list --project-ref lxinevoxzjkhbnyregtp
+
 Yes, you can!
 
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.

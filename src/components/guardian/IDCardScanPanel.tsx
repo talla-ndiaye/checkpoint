@@ -11,9 +11,12 @@ import {
   RotateCcw,
   Printer,
   X,
-  ImageIcon
+  ImageIcon,
+  Globe,
+  UserCircle,
+  Check,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,6 +30,47 @@ interface IDCardScanPanelProps {
 }
 
 type ScanStep = 'front' | 'back' | 'processing' | 'review' | 'success';
+
+const STEPS = [
+  { key: 'front', label: 'Recto', icon: CreditCard },
+  { key: 'back', label: 'Verso', icon: CreditCard },
+  { key: 'processing', label: 'Analyse', icon: ImageIcon },
+  { key: 'review', label: 'Validation', icon: Check },
+] as const;
+
+function getStepIndex(step: ScanStep): number {
+  if (step === 'success') return 4;
+  return STEPS.findIndex(s => s.key === step);
+}
+
+function StepperBar({ currentStep }: { currentStep: ScanStep }) {
+  const currentIndex = getStepIndex(currentStep);
+
+  return (
+    <div className="flex items-center w-full px-2 py-4">
+      {STEPS.map((s, i) => {
+        const Icon = s.icon;
+        const isDone = i < currentIndex;
+        const isActive = i === currentIndex;
+        return (
+          <div key={s.key} className="flex items-center flex-1 last:flex-none">
+            <div className="stepper-step">
+              <div className={`stepper-circle ${isDone ? 'stepper-circle-done' : isActive ? 'stepper-circle-active' : 'stepper-circle-pending'}`}>
+                {isDone ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
+              </div>
+              <span className={`text-[10px] font-bold uppercase tracking-wider whitespace-nowrap ${isDone ? 'text-success' : isActive ? 'text-primary' : 'text-muted-foreground'}`}>
+                {s.label}
+              </span>
+            </div>
+            {i < STEPS.length - 1 && (
+              <div className={`stepper-line mx-1 ${isDone ? 'stepper-line-done' : ''}`} />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export function IDCardScanPanel({ onComplete }: IDCardScanPanelProps) {
   const {
@@ -207,47 +251,69 @@ export function IDCardScanPanel({ onComplete }: IDCardScanPanelProps) {
     </>
   );
 
+  // ─── Processing State ────────────────────────────
   if (step === 'processing' || processing) {
     return (
-      <Card className="glass-card border-primary/20 shadow-2xl p-12 text-center space-y-8">
-        <div className="flex flex-col items-center gap-6">
-          <div className="w-24 h-24 rounded-full border-8 border-primary border-t-transparent animate-spin" />
-          <h3 className="text-2xl font-black gradient-text">Analyse en cours...</h3>
-          <div className="w-full max-w-xs space-y-2">
-            <Progress value={ocrProgress.progress} className="h-2" />
-            <p className="text-xs text-muted-foreground font-bold">
-              {ocrProgress.progress}% - {ocrProgress.status || 'Reconnaissance de texte'}
-            </p>
+      <Card className="border border-primary/20 shadow-2xl overflow-hidden">
+        {hiddenInputs}
+        <StepperBar currentStep="processing" />
+        <CardContent className="p-12 text-center space-y-8">
+          <div className="flex flex-col items-center gap-6">
+            <div className="relative">
+              <div className="w-24 h-24 rounded-full border-[6px] border-primary/20 flex items-center justify-center">
+                <div className="w-24 h-24 rounded-full border-[6px] border-primary border-t-transparent animate-spin absolute inset-0" />
+                <span className="text-2xl font-black text-primary">{ocrProgress.progress}%</span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-2xl font-black text-primary">Analyse en cours...</h3>
+              <p className="text-sm text-muted-foreground font-medium">
+                {ocrProgress.status || 'Reconnaissance de texte'}
+              </p>
+            </div>
+            <div className="w-full max-w-xs">
+              <Progress value={ocrProgress.progress} className="h-2" />
+            </div>
           </div>
-        </div>
+        </CardContent>
       </Card>
     );
   }
 
+  // ─── Success State ───────────────────────────────
   if (step === 'success' && registeredVisitor && editableData) {
     return (
-      <Card className="border-2 border-success bg-success/5 animate-fade-in">
+      <Card className="border-2 border-success/40 overflow-hidden animate-fade-in">
         {hiddenInputs}
-        <CardContent className="p-8 text-center space-y-6">
-          <div className="flex flex-col items-center gap-4">
-            <div className="h-20 w-20 rounded-full bg-success/20 flex items-center justify-center">
-              <CheckCircle className="h-10 w-10 text-success" />
+        <div className="bg-success p-8 text-center text-white">
+          <div className="flex flex-col items-center gap-3">
+            <div className="p-4 bg-black/10 rounded-full animate-bounce-in">
+              <CheckCircle className="h-10 w-10" />
             </div>
-            <h2 className="text-2xl font-black text-success">ACCES VALIDE</h2>
+            <h2 className="text-2xl font-black tracking-tight">ACCÈS VALIDÉ</h2>
+            <p className="text-white/80 text-sm">{editableData.firstName} {editableData.lastName}</p>
           </div>
+        </div>
+        <CardContent className="p-8 space-y-6">
           <div className="bg-background p-6 rounded-3xl shadow-lg border-2 border-success/10 space-y-4">
-            <div className="text-sm text-muted-foreground">Code d'acces</div>
-            <div className="text-3xl font-mono font-black tracking-[0.2em]">{registeredVisitor.receiptCode}</div>
-            <div className="flex justify-center"><QRCodeDisplay data={registeredVisitor.qrCodeData} size={180} /></div>
-            <div className="text-sm text-muted-foreground">
-              {editableData.firstName} {editableData.lastName} - {editableData.idCardNumber}
+            <div className="text-center space-y-3">
+              <p className="text-sm text-muted-foreground font-medium">Code d'accès</p>
+              <div className="text-3xl font-mono font-black tracking-[0.2em]">{registeredVisitor.receiptCode}</div>
+              <div className="flex justify-center">
+                <div className="p-3 bg-white rounded-2xl shadow-lg shadow-success/20">
+                  <QRCodeDisplay data={registeredVisitor.qrCodeData} size={180} />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                N° Pièce : {editableData.idCardNumber}
+              </p>
             </div>
           </div>
-          <div className="pt-4 grid gap-3">
-            <Button size="lg" className="w-full h-16 text-lg font-bold gap-2" onClick={printReceipt}>
-              <Printer className="h-5 w-5" /> Imprimer le recu
+          <div className="grid gap-3">
+            <Button size="lg" className="w-full h-16 text-lg font-bold gap-3 rounded-2xl bg-primary hover:bg-primary/90 shadow-lg transition-all" onClick={printReceipt}>
+              <Printer className="h-5 w-5" /> Imprimer le reçu
             </Button>
-            <Button size="lg" variant="outline" className="w-full h-12" onClick={handleReset}>
+            <Button size="lg" variant="outline" className="w-full h-12 rounded-xl border-dashed" onClick={handleReset}>
               Nouveau visiteur
             </Button>
           </div>
@@ -256,17 +322,14 @@ export function IDCardScanPanel({ onComplete }: IDCardScanPanelProps) {
     );
   }
 
+  // ─── Review State ────────────────────────────────
   if (step === 'review' && editableData) {
     return (
-      <Card className="glass-card border-primary/40 shadow-2xl overflow-hidden animate-slide-up">
+      <Card className="border border-primary/20 shadow-2xl overflow-hidden animate-slide-up">
         {hiddenInputs}
-        <CardHeader className="bg-primary/5 pb-6 border-b border-primary/10">
-          <CardTitle className="text-xl font-black flex items-center gap-3">
-            <User className="h-5 w-5 text-primary" />
-            <span className="gradient-text">Verification des donnees</span>
-          </CardTitle>
-        </CardHeader>
+        <StepperBar currentStep="review" />
         <CardContent className="p-6 space-y-6">
+          {/* Image thumbnails */}
           <div className="flex gap-3 justify-center">
             {frontImage && (
               <div className="relative group">
@@ -286,64 +349,79 @@ export function IDCardScanPanel({ onComplete }: IDCardScanPanelProps) {
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-bold uppercase text-muted-foreground">Prenom</Label>
-              <Input value={editableData.firstName} onChange={(e) => handleFieldChange('firstName', e.target.value)} className="h-11 rounded-xl font-semibold" />
+          {/* Section: Identity */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-sm font-bold text-muted-foreground uppercase tracking-wider">
+              <UserCircle className="h-4 w-4 text-primary" />
+              Identité
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase text-muted-foreground">Prénom</Label>
+                <Input value={editableData.firstName} onChange={(e) => handleFieldChange('firstName', e.target.value)} className="h-11 rounded-xl font-semibold" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase text-muted-foreground">Nom</Label>
+                <Input value={editableData.lastName} onChange={(e) => handleFieldChange('lastName', e.target.value)} className="h-11 rounded-xl font-semibold" />
+              </div>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold uppercase text-muted-foreground">Nom</Label>
-              <Input value={editableData.lastName} onChange={(e) => handleFieldChange('lastName', e.target.value)} className="h-11 rounded-xl font-semibold" />
+              <Label className="text-xs font-bold uppercase text-muted-foreground">Numéro de carte / NIN</Label>
+              <Input value={editableData.idCardNumber} onChange={(e) => handleFieldChange('idCardNumber', e.target.value)} className="h-11 rounded-xl font-mono text-center font-bold tracking-wider" />
             </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label className="text-xs font-bold uppercase text-muted-foreground">Numero de carte / NIN</Label>
-            <Input value={editableData.idCardNumber} onChange={(e) => handleFieldChange('idCardNumber', e.target.value)} className="h-11 rounded-xl font-mono text-center font-bold tracking-wider" />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
-                <Calendar className="h-3 w-3" /> Date de naissance
-              </Label>
-              <Input value={editableData.birthDate || ''} onChange={(e) => handleFieldChange('birthDate', e.target.value)} className="h-11 rounded-xl" placeholder="JJ/MM/AAAA" />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-bold uppercase text-muted-foreground">Sexe</Label>
-              <Input value={editableData.gender || ''} onChange={(e) => handleFieldChange('gender', e.target.value)} className="h-11 rounded-xl" placeholder="M / F" />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
-              <MapPin className="h-3 w-3" /> Adresse
-            </Label>
-            <Input value={editableData.address || ''} onChange={(e) => handleFieldChange('address', e.target.value)} className="h-11 rounded-xl" placeholder="Adresse" />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-bold uppercase text-muted-foreground">Nationalite</Label>
-              <Input value={editableData.nationality || 'SEN'} onChange={(e) => handleFieldChange('nationality', e.target.value)} className="h-11 rounded-xl" />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-bold uppercase text-muted-foreground">Date d'expiration</Label>
-              <Input value={editableData.expiryDate || ''} onChange={(e) => handleFieldChange('expiryDate', e.target.value)} className="h-11 rounded-xl" placeholder="JJ/MM/AAAA" />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase text-muted-foreground">Sexe</Label>
+                <Input value={editableData.gender || ''} onChange={(e) => handleFieldChange('gender', e.target.value)} className="h-11 rounded-xl" placeholder="M / F" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
+                  <Calendar className="h-3 w-3" /> Date de naissance
+                </Label>
+                <Input value={editableData.birthDate || ''} onChange={(e) => handleFieldChange('birthDate', e.target.value)} className="h-11 rounded-xl" placeholder="JJ/MM/AAAA" />
+              </div>
             </div>
           </div>
 
-          <div className="pt-4 space-y-3">
-            <Button size="lg" className="w-full h-14 text-lg font-black gap-3 rounded-2xl bg-success hover:bg-success/90" onClick={handleAccess}>
-              <LogIn className="h-5 w-5" /> Confirmer l'acces
+          {/* Section: Location */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-sm font-bold text-muted-foreground uppercase tracking-wider">
+              <MapPin className="h-4 w-4 text-accent" />
+              Localisation
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold uppercase text-muted-foreground">Adresse</Label>
+              <Input value={editableData.address || ''} onChange={(e) => handleFieldChange('address', e.target.value)} className="h-11 rounded-xl" placeholder="Adresse" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
+                  <Globe className="h-3 w-3" /> Nationalité
+                </Label>
+                <Input value={editableData.nationality || 'SEN'} onChange={(e) => handleFieldChange('nationality', e.target.value)} className="h-11 rounded-xl" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold uppercase text-muted-foreground">Date d'expiration</Label>
+                <Input value={editableData.expiryDate || ''} onChange={(e) => handleFieldChange('expiryDate', e.target.value)} className="h-11 rounded-xl" placeholder="JJ/MM/AAAA" />
+              </div>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="pt-2 space-y-3">
+            <Button size="lg" className="w-full h-14 text-lg font-black gap-3 rounded-2xl bg-success hover:bg-success/90 shadow-md transition-all" onClick={handleAccess}>
+              <LogIn className="h-5 w-5" /> Confirmer l'accès
             </Button>
-            <Button variant="ghost" className="w-full" onClick={handleReset}>Annuler et recommencer</Button>
+            <Button variant="ghost" className="w-full text-muted-foreground" onClick={handleReset}>
+              <RotateCcw className="h-4 w-4 mr-2" /> Annuler et recommencer
+            </Button>
           </div>
         </CardContent>
       </Card>
     );
   }
 
+  // ─── Capture State (Front / Back) ────────────────
   const currentSide = step === 'front' ? 'front' : 'back';
   const currentLabel = currentSide === 'front' ? 'RECTO' : 'VERSO';
   const currentDescription = currentSide === 'front'
@@ -355,27 +433,12 @@ export function IDCardScanPanel({ onComplete }: IDCardScanPanelProps) {
     : 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/cdeao-verso-j3AMJlJFyFcZMJ08SwvZ2YLV2O911e.jpg';
 
   return (
-    <Card className="glass-card border-primary/20 overflow-hidden shadow-2xl">
+    <Card className="border border-primary/20 overflow-hidden shadow-2xl">
       {hiddenInputs}
-      <CardHeader className="pb-3">
-        <CardTitle className="text-lg font-black flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <CreditCard className="h-5 w-5 text-primary" />
-            </div>
-            <span className="gradient-text">Scanner CNI</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black transition-colors ${
-              step === 'front' ? 'bg-primary text-primary-foreground' : 'bg-primary/20 text-primary'
-            }`}>1</div>
-            <div className="w-6 h-0.5 bg-muted-foreground/20" />
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black transition-colors ${
-              step === 'back' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-            }`}>2</div>
-          </div>
-        </CardTitle>
-      </CardHeader>
+
+      {/* Stepper */}
+      <StepperBar currentStep={step} />
+
       <CardContent className="space-y-5">
         {cameraActive ? (
           <div className="space-y-4">
@@ -406,22 +469,21 @@ export function IDCardScanPanel({ onComplete }: IDCardScanPanelProps) {
         ) : (
           <>
             <div className="text-center space-y-3">
-              <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold ${
-                step === 'front' ? 'bg-primary/10 text-primary' : 'bg-accent/10 text-accent-foreground'
-              }`}>
+              <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold ${step === 'front' ? 'bg-primary/10 text-primary' : 'bg-accent/10 text-accent-foreground'
+                }`}>
                 <ImageIcon className="h-4 w-4" />
-                Etape {step === 'front' ? '1' : '2'} : {currentLabel}
+                Étape {step === 'front' ? '1' : '2'} : {currentLabel}
               </div>
               <p className="text-muted-foreground text-sm">{currentDescription}</p>
             </div>
 
             {currentImage ? (
-              <div className="relative">
+              <div className="relative animate-scale-in">
                 <div className="aspect-[16/10] rounded-2xl overflow-hidden border-2 border-success/40 shadow-lg">
                   <img src={currentImage} alt={`${currentLabel} capture`} className="w-full h-full object-cover" />
                 </div>
                 <div className="absolute top-3 left-3 bg-success/90 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1">
-                  <CheckCircle className="h-3 w-3" /> {currentLabel} capture
+                  <CheckCircle className="h-3 w-3" /> {currentLabel} capturé
                 </div>
                 <button
                   onClick={() => {
@@ -454,7 +516,7 @@ export function IDCardScanPanel({ onComplete }: IDCardScanPanelProps) {
                   <img src={frontImage} alt="Recto capture" className="w-full h-full object-cover" />
                 </div>
                 <div className="text-sm">
-                  <span className="font-bold text-success">RECTO capture</span>
+                  <span className="font-bold text-success">RECTO capturé</span>
                   <p className="text-muted-foreground text-xs">Capturez maintenant le verso</p>
                 </div>
               </div>
@@ -492,7 +554,7 @@ export function IDCardScanPanel({ onComplete }: IDCardScanPanelProps) {
                 ) : (
                   <Button
                     size="lg"
-                    className="h-14 rounded-2xl text-base font-bold gap-3 bg-success hover:bg-success/90"
+                    className="h-14 rounded-2xl text-base font-bold gap-3 bg-success hover:bg-success/90 shadow-md transition-all"
                     onClick={processImages}
                   >
                     <CreditCard className="h-5 w-5" /> Analyser la carte

@@ -23,6 +23,7 @@ const resources = {
         "managers": "Managers",
         "history": "History",
         "settings": "Settings",
+        "messages": "Messages",
         "scan_qr": "Scan QR",
         "scan_id": "Scan ID Card",
         "bulk_exit": "Bulk Exit",
@@ -131,7 +132,17 @@ const resources = {
         "forgot_password": "Forgot password?",
         "login_btn": "Login",
         "signup_btn": "Create account",
-        "company_tagline": "Advanced Security Solved."
+        "company_tagline": "Advanced Security Solved.",
+        "welcome_back": "Welcome back.",
+        "start_journey": "Start your journey.",
+        "multisite_management": "Multi-site Management",
+        "centralize_operations": "Centralize your operations",
+        "encrypted_security": "Encrypted Security",
+        "high_level_protocols": "High-level protocols",
+        "realtime_dashboard": "Real-time Dashboard",
+        "advanced_statistics": "Advanced statistics",
+        "total_compliance": "Total Compliance",
+        "full_audit_trail": "Full audit trail"
       }
     }
   },
@@ -154,6 +165,7 @@ const resources = {
         "managers": "Gestionnaires",
         "history": "Historique",
         "settings": "Paramètres",
+        "messages": "Messages",
         "scan_qr": "Scanner QR",
         "scan_id": "Scanner CNI",
         "bulk_exit": "Sorties groupées",
@@ -262,7 +274,17 @@ const resources = {
         "forgot_password": "Mot de passe oublié ?",
         "login_btn": "Se connecter",
         "signup_btn": "Créer le compte",
-        "company_tagline": "La sécurité avancée, simplifiée."
+        "company_tagline": "La sécurité avancée, simplifiée.",
+        "welcome_back": "Ravis de vous revoir.",
+        "start_journey": "Commencez votre voyage.",
+        "multisite_management": "Gestion Multi-sites",
+        "centralize_operations": "Centralisez vos opérations",
+        "encrypted_security": "Sécurité Cryptée",
+        "high_level_protocols": "Protocoles de haut niveau",
+        "realtime_dashboard": "Dashboard Temps Réel",
+        "advanced_statistics": "Statistiques avancées",
+        "total_compliance": "Conformité Totale",
+        "full_audit_trail": "Audit trail complet"
       }
     }
   }

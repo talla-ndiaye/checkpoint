@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useManagers, Manager, CreateManagerData, UpdateManagerData } from '@/hooks/useManagers';
 import { ManagersTable } from '@/components/managers/ManagersTable';
 import { ManagerFormDialog } from '@/components/managers/ManagerFormDialog';
 import { DeleteManagerDialog } from '@/components/managers/DeleteManagerDialog';
-import { Plus, Search, Users, Loader2, Building2 } from 'lucide-react';
+import { Plus, Search, Users, Loader2, Building2, UserCheck, Shield } from 'lucide-react';
+import { StatCardMinimal } from '../manager/Companies';
 
 export default function ManagersPage() {
   const { managers, loading, createManager, updateManager, deleteManager } = useManagers();
@@ -56,77 +56,77 @@ export default function ManagersPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Gestion des Gestionnaires</h1>
-            <p className="text-muted-foreground">
-              Gérez les gestionnaires de site de votre organisation
-            </p>
+      <div className="space-y-8 animate-fade-in">
+        {/* Unified Page Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-center gap-5">
+            <div className="h-16 w-16 rounded-3xl bg-primary/10 flex items-center justify-center shadow-inner">
+              <UserCheck className="h-8 w-8 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-4xl font-black tracking-tight gradient-text">Gestion des Gestionnaires</h1>
+              <p className="text-muted-foreground mt-1 text-lg italic">
+                Administrez le personnel d'encadrement des sites sécurisés
+              </p>
+            </div>
           </div>
-          <Button onClick={handleCreate} className="gap-2">
-            <Plus className="h-4 w-4" />
+          <Button onClick={handleCreate} className="h-14 px-8 rounded-2xl gap-3 font-black text-lg shadow-glow hover:scale-[1.02] transition-all">
+            <Plus className="h-6 w-6" />
             Nouveau gestionnaire
           </Button>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total gestionnaires</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{managers.length}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avec sites assignés</CardTitle>
-              <Building2 className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{managersWithSites}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Sans site</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{managers.length - managersWithSites}</div>
-            </CardContent>
-          </Card>
+        {/* Stats Section with staggered animation */}
+        <div className="grid gap-6 md:grid-cols-3">
+          <div className="animate-slide-up" style={{ animationDelay: '0ms' }}>
+            <StatCardMinimal
+              title="Total gestionnaires"
+              value={managers.length}
+              icon={Users}
+            />
+          </div>
+          <div className="animate-slide-up" style={{ animationDelay: '100ms' }}>
+            <StatCardMinimal
+              title="Avec sites assignés"
+              value={managersWithSites}
+              icon={Building2}
+              variant="success"
+            />
+          </div>
+          <div className="animate-slide-up" style={{ animationDelay: '200ms' }}>
+            <StatCardMinimal
+              title="Sans site assigné"
+              value={managers.length - managersWithSites}
+              icon={Shield}
+              variant="accent"
+            />
+          </div>
         </div>
 
-        {/* Managers Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Liste des gestionnaires</CardTitle>
-            <CardDescription>
-              Tous les gestionnaires de site enregistrés dans le système
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {/* Search */}
-            <div className="mb-4">
-              <div className="relative max-w-sm">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Rechercher un gestionnaire..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+        {/* Search & Table Area */}
+        <div className="glass-card rounded-3xl overflow-hidden animate-slide-up" style={{ animationDelay: '300ms' }}>
+          <div className="p-8 border-b border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div>
+              <h3 className="text-2xl font-black tracking-tight">Liste des gestionnaires</h3>
+              <p className="text-sm text-muted-foreground mt-1">Gérez les accès administratifs et les affectations aux sites</p>
             </div>
 
+            <div className="relative w-full md:w-96 group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <Input
+                placeholder="Rechercher par nom ou email..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-12 h-14 rounded-2xl bg-white/5 border-white/10 focus:border-primary/50 transition-all font-medium"
+              />
+            </div>
+          </div>
+
+          <div className="p-2">
             {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <div className="flex flex-col items-center justify-center py-24 gap-4">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                <p className="text-muted-foreground font-black animate-pulse uppercase tracking-widest">Synchronisation...</p>
               </div>
             ) : (
               <ManagersTable
@@ -135,8 +135,8 @@ export default function ManagersPage() {
                 onDelete={handleDelete}
               />
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       {/* Dialogs */}

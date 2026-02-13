@@ -27,7 +27,7 @@ export function WalkInStatsWidget() {
   };
 
   return (
-    <div className="glass-card rounded-2xl p-6 h-full flex flex-col">
+    <div className="bg-card border border-border shadow-sm rounded-2xl p-6 h-full flex flex-col">
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-accent/10">
@@ -63,7 +63,7 @@ export function WalkInStatsWidget() {
           </div>
           <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-success to-accent transition-all duration-1000 ease-out"
+              className="h-full bg-success transition-all duration-1000 ease-out"
               style={{ width: `${exitRatio}%` }}
             />
           </div>

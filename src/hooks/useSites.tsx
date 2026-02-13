@@ -121,11 +121,14 @@ export function useSites() {
 
       await fetchSites();
       return { data: result.site, error: null };
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Impossible de mettre à jour le site';
+    } catch (error: any) {
+      console.error('Update site error details:', error);
+      const message = error?.message || 'Impossible de mettre à jour le site';
       toast({
         title: 'Erreur',
-        description: message,
+        description: message === 'Edge Function returned non-2xx status code'
+          ? "Erreur serveur lors de la mise à jour. Vérifiez que l'identifiant du gestionnaire est correct."
+          : message,
         variant: 'destructive',
       });
       return { data: null, error };
@@ -148,11 +151,14 @@ export function useSites() {
 
       await fetchSites();
       return { error: null };
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Impossible de supprimer le site';
+    } catch (error: any) {
+      console.error('Delete site error details:', error);
+      const message = error?.message || 'Impossible de supprimer le site';
       toast({
         title: 'Erreur',
-        description: message,
+        description: message === 'Edge Function returned non-2xx status code'
+          ? 'Impossible de supprimer ce bâtiment car il contient des données dépendantes (Employés, Gardiens, etc.)'
+          : message,
         variant: 'destructive',
       });
       return { error };

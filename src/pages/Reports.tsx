@@ -10,9 +10,11 @@ import {
   LogOut,
   UserCheck,
   Building2,
+  Loader2,
+  TrendingDown,
+  TrendingUp,
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -35,6 +37,28 @@ import {
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--accent))', 'hsl(221, 83%, 53%)', 'hsl(262, 83%, 58%)', 'hsl(316, 70%, 50%)'];
 
+export function StatCardPremium({ title, value, icon: Icon, trend, colorClass = "bg-primary/10 text-primary" }: { title: string, value: string | number, icon: any, trend?: string, colorClass?: string }) {
+  return (
+    <div className="glass-card p-6 rounded-3xl flex flex-col justify-between group hover:border-primary/30 transition-all duration-300">
+      <div className="flex items-center justify-between mb-4">
+        <div className={`p-3 rounded-2xl ${colorClass} group-hover:scale-110 transition-transform`}>
+          <Icon className="h-6 w-6" />
+        </div>
+        {trend && (
+          <span className="text-[10px] font-black uppercase tracking-widest text-success flex items-center gap-1">
+            <TrendingUp className="h-3 w-3" />
+            {trend}
+          </span>
+        )}
+      </div>
+      <div>
+        <p className="text-sm font-medium text-muted-foreground uppercase tracking-widest text-[10px] mb-1">{title}</p>
+        <div className="text-3xl font-black tracking-tight">{value}</div>
+      </div>
+    </div>
+  );
+}
+
 export default function Reports() {
   const [startDate, setStartDate] = useState(startOfMonth(new Date()));
   const [endDate, setEndDate] = useState(endOfMonth(new Date()));
@@ -55,284 +79,233 @@ export default function Reports() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-              <FileBarChart className="h-7 w-7 text-primary" />
-              Rapports d'accès
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              Statistiques et analyses des accès
-            </p>
+      <div className="space-y-8 animate-fade-in text-foreground">
+        {/* Unified Page Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-center gap-5">
+            <div className="h-16 w-16 rounded-3xl bg-primary/10 flex items-center justify-center shadow-inner">
+              <FileBarChart className="h-8 w-8 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-4xl font-black tracking-tight gradient-text">Rapports d'accès</h1>
+              <p className="text-muted-foreground mt-1 text-lg italic">
+                Exportez vos données et analysez les flux historiques
+              </p>
+            </div>
           </div>
-          <Button onClick={handleExportPDF} disabled={!data || loading} className="gap-2">
-            <Download className="h-4 w-4" />
+          <Button onClick={handleExportPDF} disabled={!data || loading} className="h-14 px-8 rounded-2xl gap-3 font-black text-lg shadow-glow hover:scale-[1.02] transition-all">
+            <Download className="h-6 w-6" />
             Exporter PDF
           </Button>
         </div>
 
-        {/* Date Filters */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex flex-col sm:flex-row gap-4 items-end">
-              <div className="flex-1 space-y-2">
-                <Label>Date de début</Label>
-                <Input
-                  type="date"
-                  value={format(startDate, 'yyyy-MM-dd')}
-                  onChange={(e) => setStartDate(new Date(e.target.value))}
-                />
-              </div>
-              <div className="flex-1 space-y-2">
-                <Label>Date de fin</Label>
-                <Input
-                  type="date"
-                  value={format(endDate, 'yyyy-MM-dd')}
-                  onChange={(e) => setEndDate(new Date(e.target.value))}
-                />
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => handleQuickRange(7)}>
-                  7 jours
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => handleQuickRange(30)}>
-                  30 jours
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => handleQuickRange(90)}>
-                  90 jours
-                </Button>
-              </div>
+        {/* Date Filters Bar */}
+        <div className="glass-card p-6 rounded-3xl animate-slide-up" style={{ animationDelay: '100ms' }}>
+          <div className="flex flex-col lg:flex-row gap-8 items-end">
+            <div className="w-full lg:w-auto space-y-2">
+              <Label className="text-xs font-black uppercase tracking-widest ml-1">Date de début</Label>
+              <Input
+                type="date"
+                value={format(startDate, 'yyyy-MM-dd')}
+                onChange={(e) => setStartDate(new Date(e.target.value))}
+                className="h-12 rounded-xl bg-white/5 border-white/10 font-bold px-4"
+              />
             </div>
-          </CardContent>
-        </Card>
+            <div className="w-full lg:w-auto space-y-2">
+              <Label className="text-xs font-black uppercase tracking-widest ml-1">Date de fin</Label>
+              <Input
+                type="date"
+                value={format(endDate, 'yyyy-MM-dd')}
+                onChange={(e) => setEndDate(new Date(e.target.value))}
+                className="h-12 rounded-xl bg-white/5 border-white/10 font-bold px-4"
+              />
+            </div>
+            <div className="flex gap-2 w-full lg:w-auto overflow-x-auto pb-1">
+              {[
+                { label: '7 jours', val: 7 },
+                { label: '30 jours', val: 30 },
+                { label: '90 jours', val: 90 }
+              ].map(range => (
+                <Button
+                  key={range.val}
+                  variant="outline"
+                  className="h-12 px-6 rounded-xl font-black uppercase text-xs border-white/10 hover:bg-primary hover:text-white transition-all whitespace-nowrap"
+                  onClick={() => handleQuickRange(range.val)}
+                >
+                  {range.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+          <div className="flex flex-col items-center justify-center py-24 gap-4">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <p className="text-muted-foreground font-black animate-pulse uppercase">Génération du rapport...</p>
           </div>
         ) : data ? (
           <>
             {/* Summary Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <Calendar className="h-6 w-6 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Total accès</p>
-                      <p className="text-2xl font-bold">{data.totalAccess}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-lg bg-green-500/10 flex items-center justify-center">
-                      <LogIn className="h-6 w-6 text-green-500" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Entrées</p>
-                      <p className="text-2xl font-bold">{data.totalEntries}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-lg bg-orange-500/10 flex items-center justify-center">
-                      <LogOut className="h-6 w-6 text-orange-500" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Sorties</p>
-                      <p className="text-2xl font-bold">{data.totalExits}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                      <UserCheck className="h-6 w-6 text-purple-500" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Visiteurs</p>
-                      <p className="text-2xl font-bold">{data.totalVisitors}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 animate-slide-up" style={{ animationDelay: '200ms' }}>
+              <StatCardPremium title="Total accès" value={data.totalAccess} icon={Calendar} trend="+12%" />
+              <StatCardPremium title="Entrées" value={data.totalEntries} icon={LogIn} colorClass="bg-success/10 text-success" />
+              <StatCardPremium title="Sorties" value={data.totalExits} icon={LogOut} colorClass="bg-accent/10 text-accent" />
+              <StatCardPremium title="Visiteurs" value={data.totalVisitors} icon={UserCheck} colorClass="bg-primary/20 text-primary" />
             </div>
 
-            {/* Charts */}
-            <div className="grid lg:grid-cols-2 gap-6">
+            {/* Charts Section */}
+            <div className="grid lg:grid-cols-2 gap-8 animate-slide-up" style={{ animationDelay: '300ms' }}>
               {/* Daily Access Chart */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Accès par jour</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-64">
-                    {data.accessByDay.length > 0 ? (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={data.accessByDay}>
-                          <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                          <XAxis
-                            dataKey="date"
-                            tickFormatter={(v) => format(new Date(v), 'dd/MM', { locale: fr })}
-                            className="text-muted-foreground"
-                          />
-                          <YAxis className="text-muted-foreground" />
-                          <Tooltip
-                            labelFormatter={(v) => format(new Date(v), 'dd MMMM yyyy', { locale: fr })}
-                            contentStyle={{
-                              backgroundColor: 'hsl(var(--card))',
-                              border: '1px solid hsl(var(--border))',
-                              borderRadius: '8px',
-                            }}
-                          />
-                          <Bar dataKey="entries" name="Entrées" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                          <Bar dataKey="exits" name="Sorties" fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <div className="h-full flex items-center justify-center text-muted-foreground">
-                        Aucune donnée pour cette période
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Hourly Distribution */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Distribution horaire</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-64">
+              <div className="glass-card rounded-3xl p-8 space-y-8">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-black uppercase tracking-tight">Accès par jour</h3>
+                  <TrendingUp className="h-5 w-5 text-primary opacity-50" />
+                </div>
+                <div className="h-72">
+                  {data.accessByDay.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={data.accessByHour}>
-                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                        <XAxis dataKey="hour" className="text-muted-foreground" />
-                        <YAxis className="text-muted-foreground" />
+                      <BarChart data={data.accessByDay}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                        <XAxis
+                          dataKey="date"
+                          tickFormatter={(v) => format(new Date(v), 'dd/MM', { locale: fr })}
+                          axisLine={false}
+                          tickLine={false}
+                          className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60"
+                        />
+                        <YAxis axisLine={false} tickLine={false} className="text-[10px] font-black text-muted-foreground/60" />
                         <Tooltip
+                          labelFormatter={(v) => format(new Date(v), 'dd MMMM yyyy', { locale: fr })}
                           contentStyle={{
-                            backgroundColor: 'hsl(var(--card))',
-                            border: '1px solid hsl(var(--border))',
-                            borderRadius: '8px',
+                            background: 'rgba(15, 23, 42, 0.9)',
+                            backdropFilter: 'blur(10px)',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            borderRadius: '16px',
+                            boxShadow: '0 20px 50px rgba(0,0,0,0.5)'
                           }}
                         />
-                        <Line
-                          type="monotone"
-                          dataKey="count"
-                          name="Accès"
-                          stroke="hsl(var(--primary))"
-                          strokeWidth={2}
-                          dot={{ fill: 'hsl(var(--primary))' }}
-                        />
-                      </LineChart>
+                        <Bar dataKey="entries" name="Entrées" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} barSize={20} />
+                        <Bar dataKey="exits" name="Sorties" fill="hsl(var(--accent))" radius={[8, 8, 0, 0]} barSize={20} />
+                      </BarChart>
                     </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-muted-foreground italic">
+                      Aucune donnée disponible
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Hourly Distribution */}
+              <div className="glass-card rounded-3xl p-8 space-y-8">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-black uppercase tracking-tight">Distribution horaire</h3>
+                  <FileBarChart className="h-5 w-5 text-primary opacity-50" />
+                </div>
+                <div className="h-72">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={data.accessByHour}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                      <XAxis dataKey="hour" axisLine={false} tickLine={false} className="text-[10px] font-black text-muted-foreground/60" />
+                      <YAxis axisLine={false} tickLine={false} className="text-[10px] font-black text-muted-foreground/60" />
+                      <Tooltip
+                        contentStyle={{
+                          background: 'rgba(15, 23, 42, 0.9)',
+                          backdropFilter: 'blur(10px)',
+                          border: '1px solid rgba(255,255,255,0.1)',
+                          borderRadius: '16px'
+                        }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="count"
+                        name="Accès"
+                        stroke="hsl(var(--primary))"
+                        strokeWidth={4}
+                        dot={{ fill: 'hsl(var(--primary))', r: 4, strokeWidth: 2, stroke: 'white' }}
+                        activeDot={{ r: 8, strokeWidth: 0 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
 
               {/* Top Companies */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Building2 className="h-5 w-5" />
-                    Top entreprises
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-64">
-                    {data.topCompanies.length > 0 ? (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={data.topCompanies}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={60}
-                            outerRadius={80}
-                            dataKey="count"
-                            nameKey="name"
-                            label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                          >
-                            {data.topCompanies.map((_, index) => (
-                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                            ))}
-                          </Pie>
-                          <Tooltip
-                            contentStyle={{
-                              backgroundColor: 'hsl(var(--card))',
-                              border: '1px solid hsl(var(--border))',
-                              borderRadius: '8px',
-                            }}
-                          />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <div className="h-full flex items-center justify-center text-muted-foreground">
-                        Aucune donnée disponible
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Employee vs Visitor */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Users className="h-5 w-5" />
-                    Employés vs Visiteurs
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-64">
+              <div className="glass-card rounded-3xl p-8 space-y-8">
+                <h3 className="text-xl font-black uppercase tracking-tight flex items-center gap-3">
+                  <Building2 className="h-6 w-6 text-primary" />
+                  Top entreprises
+                </h3>
+                <div className="h-72">
+                  {data.topCompanies.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
-                          data={[
-                            { name: 'Employés', value: data.totalEmployees },
-                            { name: 'Visiteurs', value: data.totalVisitors },
-                          ]}
+                          data={data.topCompanies}
                           cx="50%"
                           cy="50%"
-                          innerRadius={60}
-                          outerRadius={80}
-                          dataKey="value"
+                          innerRadius={70}
+                          outerRadius={100}
+                          dataKey="count"
+                          nameKey="name"
+                          paddingAngle={5}
                           label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
                         >
-                          <Cell fill="hsl(var(--primary))" />
-                          <Cell fill="hsl(var(--accent))" />
+                          {data.topCompanies.map((_, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
                         </Pie>
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: 'hsl(var(--card))',
-                            border: '1px solid hsl(var(--border))',
-                            borderRadius: '8px',
-                          }}
-                        />
+                        <Tooltip />
                       </PieChart>
                     </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-muted-foreground italic">
+                      Aucune donnée enregistrée
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Employee vs Visitor */}
+              <div className="glass-card rounded-3xl p-8 space-y-8">
+                <h3 className="text-xl font-black uppercase tracking-tight flex items-center gap-3">
+                  <Users className="h-6 w-6 text-primary" />
+                  Répartition des flux
+                </h3>
+                <div className="h-72">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={[
+                          { name: 'Employés', value: data.totalEmployees },
+                          { name: 'Visiteurs', value: data.totalVisitors },
+                        ]}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={70}
+                        outerRadius={100}
+                        dataKey="value"
+                        paddingAngle={8}
+                        label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                      >
+                        <Cell fill="hsl(var(--primary))" />
+                        <Cell fill="hsl(var(--accent))" stroke="none" />
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
             </div>
           </>
-        ) : null}
+        ) : (
+          <div className="text-center py-20 glass-card rounded-[40px] border-dashed opacity-50">
+            <FileBarChart className="h-16 w-16 mx-auto mb-6 text-muted-foreground/30 animate-pulse" />
+            <h3 className="text-2xl font-black uppercase tracking-tight">Données indisponibles</h3>
+            <p className="italic text-muted-foreground mt-2">Veuillez sélectionner une autre période ou vérifier la synchronisation.</p>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );
