@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Mail, Lock, Eye, EyeOff, Loader2, BarChart3, ArrowRight, CheckCircle2, Globe, LockKeyhole } from 'lucide-react';
+import { Shield, Mail, Lock, Eye, EyeOff, Loader2, BarChart3, ArrowRight, CheckCircle2, Globe, LockKeyhole, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 
 export default function Auth() {
   const { t } = useTranslation();
@@ -61,142 +62,133 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex bg-[#050810] selection:bg-primary/30 selection:text-white">
-      {/* Left Panel - Branding (Premium Dark Mode) */}
-      <div className="hidden lg:flex lg:w-3/5 relative overflow-hidden">
-        {/* Deep background with premium effects */}
-        <div className="absolute inset-0 bg-[#050810]" />
-
-        {/* Moving Aurora-like effects */}
-        <div className="absolute top-[-10%] right-[-10%] w-[60%] h-[60%] bg-primary/10 rounded-full blur-[150px] animate-pulse-glow" />
-        <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-accent/5 rounded-full blur-[120px] animate-pulse-glow" style={{ animationDelay: '4s' }} />
+    <div className="min-h-screen flex bg-[#fcfcfd] selection:bg-primary/10">
+      {/* Left Panel - Branding (Premium Light Theme) */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-slate-50 border-r border-border/50">
+        {/* Subtle Background Effects */}
+        <div className="absolute top-[-10%] right-[-10%] w-[60%] h-[60%] bg-primary/5 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-accent/5 rounded-full blur-[100px]" />
 
         {/* Subtle Grid Pattern */}
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:60px_60px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.01)_1px,transparent_1px)] bg-[size:50px_50px]" />
 
-        <div className="relative z-10 flex flex-col justify-between w-full h-full p-20">
-          <div className="space-y-8 animate-fade-in">
-            <div className="flex items-center gap-3">
-              <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-primary to-accent p-0.5 shadow-glow">
-                <div className="h-full w-full rounded-[14px] bg-[#050810] flex items-center justify-center">
-                  <Shield className="h-7 w-7 text-primary" />
-                </div>
+        <div className="relative z-10 flex flex-col justify-between w-full h-full p-16">
+          <div className="space-y-10 animate-fade-in">
+            <Link to="/" className="flex items-center gap-3 group">
+              <div className="h-12 w-12 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20 transition-transform group-hover:scale-105">
+                <Shield className="h-6 w-6 text-white" />
               </div>
-              <h2 className="text-3xl font-black tracking-tighter text-white">SECURE<span className="text-primary italic">ACCESS</span></h2>
-            </div>
+              <h2 className="text-2xl font-bold tracking-tight text-slate-900">SECURE<span className="text-primary italic">ACCESS</span></h2>
+            </Link>
 
-            <div className="space-y-6 max-w-xl">
-              <h1 className="text-7xl font-black tracking-tight leading-[0.9] text-white">
+            <div className="space-y-6 max-w-lg">
+              <h1 className="text-6xl font-black tracking-tight leading-[1.1] text-slate-900 uppercase">
                 {isLogin ? t('auth.welcome_back') : t('auth.start_journey')}
               </h1>
-              <p className="text-xl text-white/50 leading-relaxed font-medium">
+              <p className="text-lg text-slate-500 leading-relaxed font-medium">
                 {t('auth.branding_subtitle')}
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-6 max-w-2xl animate-slide-up" style={{ animationDelay: '300ms' }}>
+          <div className="grid grid-cols-1 gap-4 max-w-sm animate-slide-up" style={{ animationDelay: '300ms' }}>
             {[
-              { icon: Globe, label: t('auth.multisite_management'), desc: t('auth.centralize_operations') },
-              { icon: LockKeyhole, label: t('auth.encrypted_security'), desc: t('auth.high_level_protocols') },
-              { icon: BarChart3, label: t('auth.realtime_dashboard'), desc: t('auth.advanced_statistics') },
-              { icon: CheckCircle2, label: t('auth.total_compliance'), desc: t('auth.full_audit_trail') }
+              { icon: Globe, label: t('auth.multisite_management'), desc: t('auth.centralize_operations'), color: 'bg-blue-500' },
+              { icon: LockKeyhole, label: t('auth.encrypted_security'), desc: t('auth.high_level_protocols'), color: 'bg-emerald-500' },
+              { icon: BarChart3, label: t('auth.realtime_dashboard'), desc: t('auth.advanced_statistics'), color: 'bg-purple-500' },
+              { icon: CheckCircle2, label: t('auth.total_compliance'), desc: t('auth.full_audit_trail'), color: 'bg-amber-500' }
             ].map((feature, i) => (
-              <div key={i} className="glass-card p-6 rounded-[28px] border-white/5 hover:border-white/10 group transition-all duration-500">
-                <div className="h-12 w-12 rounded-xl bg-white/5 flex items-center justify-center mb-4 group-hover:scale-110 group-hover:bg-primary/10 transition-all">
-                  <feature.icon className="h-6 w-6 text-primary" />
+              <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-white border border-border shadow-sm hover:shadow-md transition-all duration-300">
+                <div className={`h-10 w-10 rounded-xl ${feature.color} flex items-center justify-center shrink-0 shadow-sm`}>
+                  <feature.icon className="h-5 w-5 text-white" />
                 </div>
-                <h4 className="font-black text-white text-lg tracking-tight mb-1">{feature.label}</h4>
-                <p className="text-sm text-white/40 font-medium">{feature.desc}</p>
+                <div>
+                  <h4 className="font-bold text-slate-900 text-sm tracking-tight">{feature.label}</h4>
+                  <p className="text-xs text-slate-500 font-medium">{feature.desc}</p>
+                </div>
               </div>
             ))}
           </div>
 
-          <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.4em] text-white/20">
-            <span>v2.0 Release</span>
+          <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-[0.2em] text-slate-300">
+            <span>Production v2.4.0</span>
             <span>© 2026 SecureAccess Technology</span>
           </div>
         </div>
       </div>
 
       {/* Right Panel - Form (Clean & Focused) */}
-      <div className="flex-1 flex items-center justify-center p-8 lg:p-20 relative">
-        {/* Background blobs for mobile/subtle effect */}
-        <div className="absolute top-[10%] left-[10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[100px] pointer-events-none lg:hidden" />
-
-        <div className="w-full max-w-md space-y-12 relative animate-fade-in" style={{ animationDelay: '200ms' }}>
-          {/* Header Mobile Only */}
-          <div className="lg:hidden flex flex-col items-center gap-4 text-center">
-            <div className="h-20 w-20 rounded-3xl bg-primary/10 flex items-center justify-center">
-              <Shield className="h-10 w-10 text-primary" />
-            </div>
-            <h2 className="text-4xl font-black gradient-text tracking-tighter uppercase">SecureAccess</h2>
-          </div>
+      <div className="flex-1 flex items-center justify-center p-6 lg:p-12">
+        <div className="w-full max-w-md space-y-10 animate-fade-in" style={{ animationDelay: '100ms' }}>
 
           <div className="space-y-4">
-            <h3 className="text-4xl font-black tracking-tight text-white lg:text-foreground">
+            <Link to="/" className="inline-flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-primary transition-colors mb-4 group">
+              <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
+              Retour
+            </Link>
+            <h3 className="text-4xl font-black tracking-tight text-slate-900 uppercase">
               {isLogin ? t('auth.login_title') : t('auth.signup_title')}
             </h3>
-            <p className="text-muted-foreground font-medium italic">
+            <p className="text-slate-500 font-medium">
               {isLogin ? t('auth.login_desc') : t('auth.signup_desc')}
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {!isLogin && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="firstName" className="text-xs font-black uppercase tracking-[0.2em] ml-1">{t('auth.first_name')}</Label>
+                  <Label htmlFor="firstName" className="text-xs font-bold uppercase tracking-widest text-slate-500 ml-1">{t('auth.first_name')}</Label>
                   <Input
                     id="firstName"
                     placeholder="Jean"
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     required={!isLogin}
-                    className="h-14 rounded-2xl bg-white/5 border-white/10 lg:bg-muted/50 lg:border-muted-foreground/20 focus:border-primary/50 transition-all font-bold px-6"
+                    className="h-14 rounded-2xl bg-white border-border focus:border-primary/50 shadow-sm transition-all font-bold px-6"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lastName" className="text-xs font-black uppercase tracking-[0.2em] ml-1">{t('auth.last_name')}</Label>
+                  <Label htmlFor="lastName" className="text-xs font-bold uppercase tracking-widest text-slate-500 ml-1">{t('auth.last_name')}</Label>
                   <Input
                     id="lastName"
                     placeholder="Dupont"
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                     required={!isLogin}
-                    className="h-14 rounded-2xl bg-white/5 border-white/10 lg:bg-muted/50 lg:border-muted-foreground/20 focus:border-primary/50 transition-all font-bold px-6"
+                    className="h-14 rounded-2xl bg-white border-border focus:border-primary/50 shadow-sm transition-all font-bold px-6"
                   />
                 </div>
               </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-xs font-black uppercase tracking-[0.2em] ml-1">{t('auth.email')}</Label>
+              <Label htmlFor="email" className="text-xs font-bold uppercase tracking-widest text-slate-500 ml-1">{t('auth.email')}</Label>
               <div className="relative group">
-                <Mail className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                <Mail className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-primary transition-colors" />
                 <Input
                   id="email"
                   type="email"
-                  placeholder="vous@exemple.com"
+                  placeholder="nom@entreprise.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="h-14 pl-14 rounded-2xl bg-white/5 border-white/10 lg:bg-muted/50 lg:border-muted-foreground/20 focus:border-primary/50 transition-all font-bold"
+                  className="h-14 pl-14 rounded-2xl bg-white border-border focus:border-primary/50 shadow-sm transition-all font-bold"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
               <div className="flex items-center justify-between px-1">
-                <Label htmlFor="password" className="text-xs font-black uppercase tracking-[0.2em]">{t('auth.password')}</Label>
+                <Label htmlFor="password" className="text-xs font-bold uppercase tracking-widest text-slate-500">{t('auth.password')}</Label>
                 {isLogin && (
-                  <button type="button" className="text-[10px] font-black uppercase tracking-widest text-primary hover:opacity-80 transition-opacity">
+                  <button type="button" className="text-[10px] font-bold uppercase tracking-widest text-primary hover:opacity-80 transition-opacity">
                     {t('auth.forgot_password')}
                   </button>
                 )}
               </div>
               <div className="relative group">
-                <Lock className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                <Lock className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-primary transition-colors" />
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
@@ -204,12 +196,12 @@ export default function Auth() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="h-14 pl-14 pr-14 rounded-2xl bg-white/5 border-white/10 lg:bg-muted/50 lg:border-muted-foreground/20 focus:border-primary/50 transition-all font-bold"
+                  className="h-14 pl-14 pr-14 rounded-2xl bg-white border-border focus:border-primary/50 shadow-sm transition-all font-bold"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-6 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors focus:outline-none"
+                  className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors focus:outline-none"
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
@@ -218,7 +210,7 @@ export default function Auth() {
 
             <Button
               type="submit"
-              className="w-full h-16 rounded-2xl text-lg font-black uppercase tracking-[0.2em] bg-gradient-to-r from-primary to-primary/80 hover:scale-[1.02] transition-all shadow-glow flex items-center justify-center gap-3"
+              className="w-full h-16 rounded-2xl text-lg font-black uppercase tracking-[0.2em] bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -233,7 +225,7 @@ export default function Auth() {
           </form>
 
           <div className="pt-4 text-center">
-            <p className="text-muted-foreground font-medium italic">
+            <p className="text-slate-500 font-medium">
               {isLogin ? t('auth.no_account') : t('auth.have_account')}{' '}
               <button
                 type="button"
