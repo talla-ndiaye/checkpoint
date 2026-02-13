@@ -10,11 +10,12 @@ export interface ManagerSite {
 
 export function useManagerSite() {
   const { user } = useAuth();
-  const [site, setSite] = useState<ManagerSite | null>(null);
+  const [sites, setSites] = useState<ManagerSite[]>([]);
+  const [site, setSite] = useState<ManagerSite | null>(null); // Keep for backward compatibility
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchManagerSite = async () => {
+    const fetchManagerSites = async () => {
       if (!user) {
         setLoading(false);
         return;
@@ -22,25 +23,26 @@ export function useManagerSite() {
 
       try {
         setLoading(true);
-        // Get the site where this user is manager
+        // Get all sites where this user is manager
         const { data, error } = await supabase
           .from('sites')
           .select('id, name, address')
-          .eq('manager_id', user.id)
-          .maybeSingle();
+          .eq('manager_id', user.id);
 
         if (error) throw error;
-        setSite(data);
+        setSites(data || []);
+        setSite(data?.[0] || null);
       } catch (error) {
-        console.error('Error fetching manager site:', error);
+        console.error('Error fetching manager sites:', error);
+        setSites([]);
         setSite(null);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchManagerSite();
+    fetchManagerSites();
   }, [user]);
 
-  return { site, loading };
+  return { sites, site, loading };
 }

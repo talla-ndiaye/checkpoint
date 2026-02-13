@@ -40,7 +40,23 @@ export function useEmployees(companyId?: string) {
     try {
       setLoading(true);
 
-      let query = supabase.from('employees').select('*').order('created_at', { ascending: false });
+      let query = supabase
+        .from('employees')
+        .select(`
+          *,
+          profile:profiles!employees_profiles_user_id_fkey (
+            id,
+            first_name,
+            last_name,
+            email,
+            phone
+          ),
+          company:companies (
+            id,
+            name
+          )
+        `)
+        .order('created_at', { ascending: false });
 
       if (companyId) {
         query = query.eq('company_id', companyId);
@@ -50,32 +66,7 @@ export function useEmployees(companyId?: string) {
 
       if (employeesError) throw employeesError;
 
-      // Fetch related data
-      const employeesWithDetails: Employee[] = await Promise.all(
-        (employeesData || []).map(async (employee) => {
-          // Get profile info
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('id, first_name, last_name, email, phone')
-            .eq('id', employee.user_id)
-            .maybeSingle();
-
-          // Get company info
-          const { data: companyData } = await supabase
-            .from('companies')
-            .select('id, name')
-            .eq('id', employee.company_id)
-            .maybeSingle();
-
-          return {
-            ...employee,
-            profile: profileData,
-            company: companyData,
-          };
-        })
-      );
-
-      setEmployees(employeesWithDetails);
+      setEmployees((employeesData as any) || []);
     } catch (error: any) {
       toast({
         title: 'Erreur',
@@ -92,7 +83,7 @@ export function useEmployees(companyId?: string) {
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
-      
+
       if (!token) {
         toast({
           title: 'Erreur',
@@ -102,31 +93,19 @@ export function useEmployees(companyId?: string) {
         return { data: null, error: new Error('Session expirée') };
       }
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            email: employeeData.email,
-            password: employeeData.password,
-            firstName: employeeData.first_name,
-            lastName: employeeData.last_name,
-            phone: employeeData.phone,
-            role: 'employee',
-            companyId: employeeData.company_id,
-          }),
+      const { data: result, error: functionError } = await supabase.functions.invoke('create-user', {
+        body: {
+          email: employeeData.email,
+          password: employeeData.password,
+          firstName: employeeData.first_name,
+          lastName: employeeData.last_name,
+          phone: employeeData.phone,
+          role: 'employee',
+          companyId: employeeData.company_id,
         }
-      );
+      });
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Erreur lors de la création');
-      }
+      if (functionError) throw functionError;
 
       toast({
         title: 'Succès',
@@ -148,20 +127,24 @@ export function useEmployees(companyId?: string) {
   const updateEmployee = async (
     employeeId: string,
     userId: string,
-    data: { first_name: string; last_name: string; email: string; phone?: string }
+    data: { first_name?: string; last_name?: string; email?: string; phone?: string; password?: string }
   ) => {
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          first_name: data.first_name,
-          last_name: data.last_name,
-          email: data.email,
-          phone: data.phone || null,
-        })
-        .eq('id', userId);
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) throw new Error('Session expirée');
 
-      if (error) throw error;
+      const { data: result, error: functionError } = await supabase.functions.invoke('update-user', {
+        body: {
+          userId,
+          firstName: data.first_name,
+          lastName: data.last_name,
+          phone: data.phone,
+          password: data.password
+        }
+      });
+
+      if (functionError) throw functionError;
 
       toast({
         title: 'Succès',

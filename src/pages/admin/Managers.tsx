@@ -64,8 +64,8 @@ export default function ManagersPage() {
               <UserCheck className="h-8 w-8 text-primary" />
             </div>
             <div>
-              <h1 className="text-4xl font-black tracking-tight gradient-text">Gestion des Gestionnaires</h1>
-              <p className="text-muted-foreground mt-1 text-lg italic">
+              <h1 className="text-4xl font-black tracking-tight text-slate-900 uppercase">Gestion des Gestionnaires</h1>
+              <p className="text-slate-500 mt-1 text-lg font-medium">
                 Administrez le personnel d'encadrement des sites sécurisés
               </p>
             </div>
@@ -104,20 +104,20 @@ export default function ManagersPage() {
         </div>
 
         {/* Search & Table Area */}
-        <div className="glass-card rounded-3xl overflow-hidden animate-slide-up" style={{ animationDelay: '300ms' }}>
-          <div className="p-8 border-b border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="bg-white border border-border rounded-[2.5rem] overflow-hidden animate-slide-up shadow-sm" style={{ animationDelay: '300ms' }}>
+          <div className="p-8 border-b border-border flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div>
-              <h3 className="text-2xl font-black tracking-tight">Liste des gestionnaires</h3>
-              <p className="text-sm text-muted-foreground mt-1">Gérez les accès administratifs et les affectations aux sites</p>
+              <h3 className="text-2xl font-black tracking-tight text-slate-900">Liste des gestionnaires</h3>
+              <p className="text-sm text-slate-500 mt-1 font-medium">Gérez les accès administratifs et les affectations aux sites</p>
             </div>
 
             <div className="relative w-full md:w-96 group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-primary transition-colors" />
               <Input
                 placeholder="Rechercher par nom ou email..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-12 h-14 rounded-2xl bg-white/5 border-white/10 focus:border-primary/50 transition-all font-medium"
+                className="pl-12 h-14 rounded-2xl bg-slate-50 border-slate-200 focus:border-primary/50 transition-all font-medium"
               />
             </div>
           </div>

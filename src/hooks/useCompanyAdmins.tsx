@@ -28,7 +28,7 @@ export function useCompanyAdmins(siteId?: string) {
   const fetchAdmins = async () => {
     try {
       setLoading(true);
-      
+
       // First get companies, optionally filtered by siteId
       let companiesQuery = supabase
         .from('companies')
@@ -80,7 +80,7 @@ export function useCompanyAdmins(siteId?: string) {
         .map(company => {
           const roleInfo = roleData?.find(r => r.user_id === company.admin_id);
           const profile = profiles?.find(p => p.id === company.admin_id);
-          
+
           return {
             id: `${company.admin_id}-${company.id}`,
             user_id: company.admin_id!,
@@ -115,37 +115,25 @@ export function useCompanyAdmins(siteId?: string) {
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
-      
+
       if (!token) {
         toast.error('Session expirée, veuillez vous reconnecter');
         return false;
       }
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            email: data.email,
-            password: data.password,
-            firstName: data.firstName,
-            lastName: data.lastName,
-            phone: data.phone,
-            role: 'company_admin',
-            companyId: data.companyId,
-          }),
+      const { data: result, error: functionError } = await supabase.functions.invoke('create-user', {
+        body: {
+          email: data.email,
+          password: data.password,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          phone: data.phone,
+          role: 'company_admin',
+          companyId: data.companyId,
         }
-      );
+      });
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Erreur lors de la création');
-      }
+      if (functionError) throw functionError;
 
       toast.success('Administrateur créé avec succès');
       fetchAdmins();

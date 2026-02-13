@@ -14,6 +14,7 @@ import ManagerEmployees from "./pages/manager/Employees";
 import Guardians from "./pages/manager/Guardians";
 import CompanyAdmins from "./pages/manager/CompanyAdmins";
 import CompanyAdminEmployees from "./pages/company-admin/Employees";
+import ManagerUsers from "./pages/manager/Users";
 import Invitations from "./pages/employee/Invitations";
 import InvitationDetails from "./pages/employee/InvitationDetails";
 import MyQRCode from "./pages/employee/MyQRCode";
@@ -25,6 +26,7 @@ import IDCardScanPage from "./pages/guardian/IDCardScanPage";
 import BulkExitPage from "./pages/guardian/BulkExitPage";
 import Analytics from "./pages/Analytics";
 import AdminSettings from "./pages/admin/Settings";
+import UsersManagement from "./pages/admin/Users";
 import KioskRegistration from "./pages/KioskRegistration";
 import PublicInvitation from "./pages/public/PublicInvitation";
 import Contact from "./pages/Contact";
@@ -58,6 +60,7 @@ const App = () => (
             {/* Admin Routes */}
             <Route path="/admin/sites" element={<ProtectedRoute allowedRoles={['super_admin']}><Sites /></ProtectedRoute>} />
             <Route path="/admin/managers" element={<ProtectedRoute allowedRoles={['super_admin']}><Managers /></ProtectedRoute>} />
+            <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['super_admin']}><UsersManagement /></ProtectedRoute>} />
             <Route path="/admin/messages" element={<ProtectedRoute allowedRoles={['super_admin']}><ContactMessages /></ProtectedRoute>} />
             <Route path="/admin/settings" element={<ProtectedRoute allowedRoles={['super_admin']}><AdminSettings /></ProtectedRoute>} />
 
@@ -65,6 +68,7 @@ const App = () => (
             <Route path="/manager/companies" element={<ProtectedRoute allowedRoles={['manager']}><Companies /></ProtectedRoute>} />
             <Route path="/manager/companies/:companyId/employees" element={<ProtectedRoute allowedRoles={['manager']}><ManagerEmployees /></ProtectedRoute>} />
             <Route path="/manager/employees" element={<ProtectedRoute allowedRoles={['manager']}><ManagerEmployees /></ProtectedRoute>} />
+            <Route path="/manager/users" element={<ProtectedRoute allowedRoles={['manager']}><ManagerUsers /></ProtectedRoute>} />
             <Route path="/manager/guardians" element={<ProtectedRoute allowedRoles={['manager']}><Guardians /></ProtectedRoute>} />
             <Route path="/manager/company-admins" element={<ProtectedRoute allowedRoles={['manager']}><CompanyAdmins /></ProtectedRoute>} />
 
