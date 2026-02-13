@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { supabase } from '@/integrations/supabase/client';
+import { Tables } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
 import {
     Mail,
@@ -28,15 +29,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-interface ContactMessage {
-    id: string;
-    full_name: string;
-    email: string;
-    subject: string;
-    message: string;
-    status: string;
-    created_at: string;
-}
+type ContactMessage = Tables<'contact_messages'>;
 
 export default function ContactMessages() {
     const [messages, setMessages] = useState<ContactMessage[]>([]);
@@ -242,7 +235,7 @@ export default function ContactMessages() {
                                                         <div className="h-1 w-1 rounded-full bg-slate-300" />
                                                         <div className="flex items-center gap-2 text-slate-500 font-semibold text-sm">
                                                             <Clock className="h-4 w-4 text-indigo-400" />
-                                                            {format(new Date(msg.created_at), "d MMMM yyyy 'à' HH:mm", { locale: fr })}
+                                                            {msg.created_at ? format(new Date(msg.created_at), "d MMMM yyyy 'à' HH:mm", { locale: fr }) : 'Date inconnue'}
                                                         </div>
                                                     </div>
                                                 </div>

@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
+import { usePermissions } from './usePermissions';
 
 export interface Employee {
   id: string;
@@ -15,30 +16,30 @@ export interface Employee {
     last_name: string;
     email: string;
     phone: string | null;
-  } | null;
+  };
   company?: {
     id: string;
     name: string;
-  } | null;
+  };
 }
 
 export interface CreateEmployeeData {
-  email: string;
-  password: string;
   first_name: string;
   last_name: string;
+  email: string;
   phone?: string;
   company_id: string;
 }
 
-export function useEmployees(companyId?: string) {
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
 
-  const fetchEmployees = async () => {
-    try {
-      setLoading(true);
+export function useEmployees(companyId?: string) {
+  const queryClient = useQueryClient();
+  const { data: permissions } = usePermissions();
+
+  const fetchEmployeesQuery = useQuery({
+    queryKey: ['employees', companyId, permissions?.allowedSiteIds],
+    queryFn: async (): Promise<Employee[]> => {
+      if (!permissions) return [];
 
       let query = supabase
         .from('employees')
@@ -55,147 +56,94 @@ export function useEmployees(companyId?: string) {
             id,
             name
           )
-        `)
-        .order('created_at', { ascending: false });
+        `);
 
+      // Role-based filtering
+      if (!permissions.isSuperAdmin) {
+        if (permissions.isCompanyAdmin && permissions.companyId) {
+          query = query.eq('company_id', permissions.companyId);
+        } else if (permissions.allowedSiteIds) {
+          const { data: siteCompanies } = await supabase.from('companies').select('id').in('site_id', permissions.allowedSiteIds);
+          const compIds = siteCompanies?.map(c => c.id) || [];
+          query = query.in('company_id', compIds);
+        }
+      }
+
+      // Explicit filter
       if (companyId) {
         query = query.eq('company_id', companyId);
       }
 
-      const { data: employeesData, error: employeesError } = await query;
-
-      if (employeesError) throw employeesError;
-
-      setEmployees((employeesData as any) || []);
-    } catch (error: any) {
-      toast({
-        title: 'Erreur',
-        description: 'Impossible de charger les employés',
-        variant: 'destructive',
-      });
-      console.error('Error fetching employees:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const createEmployee = async (employeeData: CreateEmployeeData) => {
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
-
-      if (!token) {
-        toast({
-          title: 'Erreur',
-          description: 'Session expirée, veuillez vous reconnecter',
-          variant: 'destructive',
-        });
-        return { data: null, error: new Error('Session expirée') };
-      }
-
-      const { data: result, error: functionError } = await supabase.functions.invoke('create-user', {
-        body: {
-          email: employeeData.email,
-          password: employeeData.password,
-          firstName: employeeData.first_name,
-          lastName: employeeData.last_name,
-          phone: employeeData.phone,
-          role: 'employee',
-          companyId: employeeData.company_id,
-        }
-      });
-
-      if (functionError) throw functionError;
-
-      toast({
-        title: 'Succès',
-        description: 'Employé créé avec succès',
-      });
-
-      await fetchEmployees();
-      return { data: result, error: null };
-    } catch (error: any) {
-      toast({
-        title: 'Erreur',
-        description: error.message || 'Impossible de créer l\'employé',
-        variant: 'destructive',
-      });
-      return { data: null, error };
-    }
-  };
-
-  const updateEmployee = async (
-    employeeId: string,
-    userId: string,
-    data: { first_name?: string; last_name?: string; email?: string; phone?: string; password?: string }
-  ) => {
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
-      if (!token) throw new Error('Session expirée');
-
-      const { data: result, error: functionError } = await supabase.functions.invoke('update-user', {
-        body: {
-          userId,
-          firstName: data.first_name,
-          lastName: data.last_name,
-          phone: data.phone,
-          password: data.password
-        }
-      });
-
-      if (functionError) throw functionError;
-
-      toast({
-        title: 'Succès',
-        description: 'Employé mis à jour avec succès',
-      });
-
-      await fetchEmployees();
-      return { error: null };
-    } catch (error: any) {
-      toast({
-        title: 'Erreur',
-        description: error.message || 'Impossible de mettre à jour l\'employé',
-        variant: 'destructive',
-      });
-      return { error };
-    }
-  };
-
-  const deleteEmployee = async (id: string) => {
-    try {
-      const { error } = await supabase.from('employees').delete().eq('id', id);
-
+      const { data, error } = await query.order('created_at', { ascending: false });
       if (error) throw error;
 
-      toast({
-        title: 'Succès',
-        description: 'Employé supprimé avec succès',
-      });
+      return (data as any) || [];
+    },
+    enabled: !!permissions,
+  });
 
-      await fetchEmployees();
-      return { error: null };
-    } catch (error: any) {
-      toast({
-        title: 'Erreur',
-        description: error.message || 'Impossible de supprimer l\'employé',
-        variant: 'destructive',
+  const createEmployeeMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const { data: result, error } = await supabase.functions.invoke('create-user', {
+        body: {
+          ...data,
+          role: 'employee',
+        },
       });
-      return { error };
-    }
-  };
+      if (error) throw error;
+      if (result.error) throw new Error(result.error);
+      return result;
+    },
+    onSuccess: () => {
+      toast.success('Employé créé avec succès');
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Erreur lors de la création');
+    },
+  });
 
-  useEffect(() => {
-    fetchEmployees();
-  }, [companyId]);
+  const deleteEmployeeMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('employees').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Employé supprimé');
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+    },
+    onError: (error: any) => {
+      toast.error('Erreur lors de la suppression');
+    },
+  });
+
+  const updateEmployeeMutation = useMutation({
+    mutationFn: async ({ id, userId, data }: { id: string; userId: string; data: any }) => {
+      const { data: result, error } = await supabase.functions.invoke('update-user', {
+        body: {
+          userId,
+          ...data,
+        },
+      });
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      toast.success('Employé mis à jour');
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Erreur lors de la mise à jour');
+    },
+  });
+
 
   return {
-    employees,
-    loading,
-    fetchEmployees,
-    createEmployee,
-    updateEmployee,
-    deleteEmployee,
+    employees: fetchEmployeesQuery.data || [],
+    loading: fetchEmployeesQuery.isLoading,
+    createEmployee: (data: any) => createEmployeeMutation.mutateAsync(data),
+    updateEmployee: (id: string, userId: string, data: any) => updateEmployeeMutation.mutateAsync({ id, userId, data }),
+    deleteEmployee: (id: string) => deleteEmployeeMutation.mutateAsync(id),
+    fetchEmployees: fetchEmployeesQuery.refetch,
   };
 }

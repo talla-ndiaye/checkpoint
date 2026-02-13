@@ -7,7 +7,7 @@ import { ManagersTable } from '@/components/managers/ManagersTable';
 import { ManagerFormDialog } from '@/components/managers/ManagerFormDialog';
 import { DeleteManagerDialog } from '@/components/managers/DeleteManagerDialog';
 import { Plus, Search, Users, Loader2, Building2, UserCheck, Shield } from 'lucide-react';
-import { StatCardMinimal } from '../manager/Companies';
+import { StatCardMinimal } from '@/components/ui/StatCardMinimal';
 
 export default function ManagersPage() {
   const { managers, loading, createManager, updateManager, deleteManager } = useManagers();

@@ -14,7 +14,12 @@ export interface Guardian {
     email: string;
     phone: string | null;
   };
+  sites?: {
+    id: string;
+    name: string;
+  }[];
 }
+
 
 export function useGuardians() {
   const [guardians, setGuardians] = useState<Guardian[]>([]);
@@ -35,25 +40,36 @@ export function useGuardians() {
 
       if (error) throw error;
 
-      // Fetch profiles for guardians
+      // Fetch profiles and sites for guardians
       if (data && data.length > 0) {
         const userIds = data.map(g => g.user_id);
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, first_name, last_name, email, phone')
-          .in('id', userIds);
+        const siteIds = data.map(g => g.site_id);
+
+        const [
+          { data: profiles, error: profilesError },
+          { data: sites, error: sitesError }
+        ] = await Promise.all([
+          supabase.from('profiles').select('id, first_name, last_name, email, phone').in('id', userIds),
+          supabase.from('sites').select('id, name').in('id', siteIds)
+        ]);
 
         if (profilesError) throw profilesError;
+        if (sitesError) throw sitesError;
 
-        const guardiansWithProfiles = data.map(guardian => ({
-          ...guardian,
-          profile: profiles?.find(p => p.id === guardian.user_id)
-        }));
+        const guardiansWithDetails = data.map(guardian => {
+          const site = sites?.find(s => s.id === guardian.site_id);
+          return {
+            ...guardian,
+            profile: profiles?.find(p => p.id === guardian.user_id),
+            sites: site ? [site] : []
+          };
+        });
 
-        setGuardians(guardiansWithProfiles);
+        setGuardians(guardiansWithDetails);
       } else {
         setGuardians([]);
       }
+
     } catch (error) {
       console.error('Error fetching guardians:', error);
       toast.error('Erreur lors du chargement des gardiens');

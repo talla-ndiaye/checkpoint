@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
+import { usePermissions } from './usePermissions';
 
 export interface Company {
   id: string;
@@ -8,182 +9,115 @@ export interface Company {
   site_id: string;
   admin_id: string | null;
   created_at: string;
-  updated_at: string;
   site?: {
     id: string;
     name: string;
-  } | null;
+  };
   admin?: {
     id: string;
     first_name: string;
     last_name: string;
     email: string;
-  } | null;
-  employee_count?: number;
-}
-
-export interface CreateCompanyData {
-  name: string;
-  site_id: string;
-  admin_id?: string | null;
+  };
 }
 
 export function useCompanies(siteId?: string) {
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { data: permissions } = usePermissions();
 
-  const fetchCompanies = async () => {
-    try {
-      setLoading(true);
-      
-      let query = supabase.from('companies').select('*').order('created_at', { ascending: false });
-      
+  const fetchCompaniesQuery = useQuery({
+    queryKey: ['companies', siteId, permissions?.allowedSiteIds],
+    queryFn: async (): Promise<Company[]> => {
+      if (!permissions) return [];
+
+      let query = supabase
+        .from('companies')
+        .select(`
+          *,
+          site:sites (
+            id,
+            name
+          ),
+          admin:profiles!companies_admin_id_fkey (
+            id,
+            first_name,
+            last_name,
+            email
+          )
+        `);
+
+      // Role-based filtering
+      if (!permissions.isSuperAdmin) {
+        if (permissions.allowedSiteIds) {
+          query = query.in('site_id', permissions.allowedSiteIds);
+        }
+      }
+
       if (siteId) {
         query = query.eq('site_id', siteId);
       }
 
-      const { data: companiesData, error: companiesError } = await query;
-
-      if (companiesError) throw companiesError;
-
-      // Fetch related data
-      const companiesWithDetails: Company[] = await Promise.all(
-        (companiesData || []).map(async (company) => {
-          // Get site info
-          const { data: siteData } = await supabase
-            .from('sites')
-            .select('id, name')
-            .eq('id', company.site_id)
-            .maybeSingle();
-
-          // Get admin info if exists
-          let adminData = null;
-          if (company.admin_id) {
-            const { data } = await supabase
-              .from('profiles')
-              .select('id, first_name, last_name, email')
-              .eq('id', company.admin_id)
-              .maybeSingle();
-            adminData = data;
-          }
-
-          // Get employee count
-          const { count } = await supabase
-            .from('employees')
-            .select('*', { count: 'exact', head: true })
-            .eq('company_id', company.id);
-
-          return {
-            ...company,
-            site: siteData,
-            admin: adminData,
-            employee_count: count || 0,
-          };
-        })
-      );
-
-      setCompanies(companiesWithDetails);
-    } catch (error: any) {
-      toast({
-        title: 'Erreur',
-        description: 'Impossible de charger les entreprises',
-        variant: 'destructive',
-      });
-      console.error('Error fetching companies:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const createCompany = async (companyData: CreateCompanyData) => {
-    try {
-      const { data, error } = await supabase
-        .from('companies')
-        .insert([companyData])
-        .select()
-        .single();
-
+      const { data, error } = await query.order('created_at', { ascending: false });
       if (error) throw error;
 
-      toast({
-        title: 'Succès',
-        description: 'Entreprise créée avec succès',
-      });
+      return (data as any) || [];
+    },
+    enabled: !!permissions,
+  });
 
-      await fetchCompanies();
-      return { data, error: null };
-    } catch (error: any) {
-      toast({
-        title: 'Erreur',
-        description: error.message || 'Impossible de créer l\'entreprise',
-        variant: 'destructive',
-      });
-      return { data: null, error };
-    }
-  };
-
-  const updateCompany = async (id: string, companyData: Partial<CreateCompanyData>) => {
-    try {
-      const { data, error } = await supabase
+  const createCompanyMutation = useMutation({
+    mutationFn: async (data: { name: string; site_id: string }) => {
+      const { data: result, error } = await supabase
         .from('companies')
-        .update(companyData)
+        .insert(data)
+        .select()
+        .single();
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      toast.success('Entreprise créée');
+      queryClient.invalidateQueries({ queryKey: ['companies'] });
+    },
+    onError: (error: any) => {
+      toast.error('Erreur : ' + error.message);
+    }
+  });
+
+  const updateCompanyMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string, data: any }) => {
+      const { data: result, error } = await supabase
+        .from('companies')
+        .update(data)
         .eq('id', id)
         .select()
         .single();
-
       if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      toast.success('Entreprise mise à jour');
+      queryClient.invalidateQueries({ queryKey: ['companies'] });
+    },
+  });
 
-      toast({
-        title: 'Succès',
-        description: 'Entreprise mise à jour avec succès',
-      });
-
-      await fetchCompanies();
-      return { data, error: null };
-    } catch (error: any) {
-      toast({
-        title: 'Erreur',
-        description: error.message || 'Impossible de mettre à jour l\'entreprise',
-        variant: 'destructive',
-      });
-      return { data: null, error };
-    }
-  };
-
-  const deleteCompany = async (id: string) => {
-    try {
+  const deleteCompanyMutation = useMutation({
+    mutationFn: async (id: string) => {
       const { error } = await supabase.from('companies').delete().eq('id', id);
-
       if (error) throw error;
-
-      toast({
-        title: 'Succès',
-        description: 'Entreprise supprimée avec succès',
-      });
-
-      await fetchCompanies();
-      return { error: null };
-    } catch (error: any) {
-      toast({
-        title: 'Erreur',
-        description: error.message || 'Impossible de supprimer l\'entreprise',
-        variant: 'destructive',
-      });
-      return { error };
-    }
-  };
-
-  useEffect(() => {
-    fetchCompanies();
-  }, [siteId]);
+    },
+    onSuccess: () => {
+      toast.success('Entreprise supprimée');
+      queryClient.invalidateQueries({ queryKey: ['companies'] });
+    },
+  });
 
   return {
-    companies,
-    loading,
-    fetchCompanies,
-    createCompany,
-    updateCompany,
-    deleteCompany,
+    companies: fetchCompaniesQuery.data || [],
+    loading: fetchCompaniesQuery.isLoading,
+    createCompany: (data: any) => createCompanyMutation.mutateAsync(data),
+    updateCompany: (id: string, data: any) => updateCompanyMutation.mutateAsync({ id, data }),
+    deleteCompany: (id: string) => deleteCompanyMutation.mutateAsync(id),
+    fetchCompanies: fetchCompaniesQuery.refetch,
   };
 }

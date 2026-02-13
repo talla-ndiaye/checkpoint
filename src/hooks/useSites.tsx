@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
+import { usePermissions } from './usePermissions';
 
 export interface Site {
   id: string;
@@ -8,173 +9,78 @@ export interface Site {
   address: string;
   manager_id: string | null;
   created_at: string;
-  updated_at: string;
   manager?: {
     id: string;
     first_name: string;
     last_name: string;
     email: string;
-  } | null;
-}
-
-export interface CreateSiteData {
-  name: string;
-  address: string;
-  manager_id?: string | null;
+  };
 }
 
 export function useSites() {
-  const [sites, setSites] = useState<Site[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { data: permissions } = usePermissions();
 
-  const fetchSites = async () => {
-    try {
-      setLoading(true);
-      // First get sites
-      const { data: sitesData, error: sitesError } = await supabase
+  const fetchSitesQuery = useQuery({
+    queryKey: ['sites', permissions?.allowedSiteIds],
+    queryFn: async (): Promise<Site[]> => {
+      if (!permissions) return [];
+
+      let query = supabase
         .from('sites')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select(`
+          *,
+          manager:profiles!sites_manager_id_fkey (
+            id,
+            first_name,
+            last_name,
+            email
+          )
+        `);
 
-      if (sitesError) throw sitesError;
+      // Role-based filtering
+      if (!permissions.isSuperAdmin) {
+        if (permissions.allowedSiteIds) {
+          query = query.in('id', permissions.allowedSiteIds);
+        }
+      }
 
-      // Then get manager profiles for each site
-      const sitesWithManagers: Site[] = await Promise.all(
-        (sitesData || []).map(async (site) => {
-          if (site.manager_id) {
-            const { data: managerData } = await supabase
-              .from('profiles')
-              .select('id, first_name, last_name, email')
-              .eq('id', site.manager_id)
-              .maybeSingle();
-            return { ...site, manager: managerData };
-          }
-          return { ...site, manager: null };
-        })
-      );
+      const { data, error } = await query.order('created_at', { ascending: false });
+      if (error) throw error;
 
-      setSites(sitesWithManagers);
-    } catch (error: any) {
-      toast({
-        title: 'Erreur',
-        description: 'Impossible de charger les sites',
-        variant: 'destructive',
-      });
-      console.error('Error fetching sites:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      return (data as any) || [];
+    },
+    enabled: !!permissions,
+  });
 
-  const createSite = async (siteData: CreateSiteData) => {
-    try {
+  const manageSiteMutation = useMutation({
+    mutationFn: async ({ action, id, data }: { action: 'create' | 'update' | 'delete', id?: string, data?: any }) => {
       const { data: result, error } = await supabase.functions.invoke('manage-site', {
-        body: {
-          action: 'create',
-          name: siteData.name,
-          address: siteData.address,
-          manager_id: siteData.manager_id,
-        },
+        body: { action, id, ...data }
       });
-
       if (error) throw error;
       if (result.error) throw new Error(result.error);
-
-      toast({
-        title: 'Succès',
-        description: 'Site créé avec succès',
-      });
-
-      await fetchSites();
-      return { data: result.site, error: null };
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Impossible de créer le site';
-      toast({
-        title: 'Erreur',
-        description: message,
-        variant: 'destructive',
-      });
-      return { data: null, error };
-    }
-  };
-
-  const updateSite = async (id: string, siteData: Partial<CreateSiteData>) => {
-    try {
-      const { data: result, error } = await supabase.functions.invoke('manage-site', {
-        body: {
-          action: 'update',
-          id,
-          name: siteData.name,
-          address: siteData.address,
-          manager_id: siteData.manager_id,
-        },
-      });
-
-      if (error) throw error;
-      if (result.error) throw new Error(result.error);
-
-      toast({
-        title: 'Succès',
-        description: 'Site mis à jour avec succès',
-      });
-
-      await fetchSites();
-      return { data: result.site, error: null };
-    } catch (error: any) {
-      console.error('Update site error details:', error);
-      const message = error?.message || 'Impossible de mettre à jour le site';
-      toast({
-        title: 'Erreur',
-        description: message === 'Edge Function returned non-2xx status code'
-          ? "Erreur serveur lors de la mise à jour. Vérifiez que l'identifiant du gestionnaire est correct."
-          : message,
-        variant: 'destructive',
-      });
-      return { data: null, error };
-    }
-  };
-
-  const deleteSite = async (id: string) => {
-    try {
-      const { data: result, error } = await supabase.functions.invoke('manage-site', {
-        body: { action: 'delete', id },
-      });
-
-      if (error) throw error;
-      if (result.error) throw new Error(result.error);
-
-      toast({
-        title: 'Succès',
-        description: 'Site supprimé avec succès',
-      });
-
-      await fetchSites();
-      return { error: null };
-    } catch (error: any) {
-      console.error('Delete site error details:', error);
-      const message = error?.message || 'Impossible de supprimer le site';
-      toast({
-        title: 'Erreur',
-        description: message === 'Edge Function returned non-2xx status code'
-          ? 'Impossible de supprimer ce bâtiment car il contient des données dépendantes (Employés, Gardiens, etc.)'
-          : message,
-        variant: 'destructive',
-      });
-      return { error };
-    }
-  };
-
-  useEffect(() => {
-    fetchSites();
-  }, []);
+      return result;
+    },
+    onSuccess: (_, variables) => {
+      const actionLabels = { create: 'créé', update: 'mis à jour', delete: 'supprimé' };
+      toast.success(`Site ${actionLabels[variables.action]} avec succès`);
+      queryClient.invalidateQueries({ queryKey: ['sites'] });
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Une erreur est survenue');
+    },
+  });
 
   return {
-    sites,
-    loading,
-    fetchSites,
-    createSite,
-    updateSite,
-    deleteSite,
+    sites: fetchSitesQuery.data || [],
+    loading: fetchSitesQuery.isLoading,
+    createSite: (data: { name: string; address: string; manager_id?: string }) =>
+      manageSiteMutation.mutateAsync({ action: 'create', data }),
+    updateSite: (id: string, data: { name?: string; address?: string; manager_id?: string | null }) =>
+      manageSiteMutation.mutateAsync({ action: 'update', id, data }),
+    deleteSite: (id: string) =>
+      manageSiteMutation.mutateAsync({ action: 'delete', id }),
+    fetchSites: fetchSitesQuery.refetch,
   };
 }

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
+import { PWAInstallPrompt } from '@/components/ui/PWAInstallPrompt';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -55,8 +56,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         onClose={() => setSidebarOpen(false)}
       />
 
-      {/* Mobile header - Solid flat bar */}
-      <div className="lg:hidden sticky top-0 z-30 px-4 py-3">
+      {/* Mobile header - Fixed flat bar */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 px-4 py-3 bg-background/80 backdrop-blur-md">
         <div className="bg-card rounded-2xl px-4 py-3 flex items-center justify-between border border-border shadow-md">
           <div className="flex items-center gap-3">
             <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center shadow-sm">
@@ -76,11 +77,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
       </div>
 
-      <main className="lg:ml-72 min-h-screen relative z-10">
+      <main className="lg:ml-72 min-h-screen relative z-10 pt-20 lg:pt-0">
         <div className="p-4 sm:p-6 lg:p-8 animate-fade-in max-w-7xl mx-auto">
           {children}
         </div>
       </main>
+
+      <PWAInstallPrompt />
     </div>
   );
 }
